@@ -1,0 +1,461 @@
+
+Main Firmware data area (not fully sure where this starts just at the mo.
+==================
+&B0FF   &B0FF   0   Last byte of free memory
+
+Used by Maths routines
+---
+&B100	&B8E4	2	&07, &C6 last random number?
+&B102	&B8E6	2	&65, &89 last random number?
+&B104	&B8E8	5	internal REAL store 1
+&B109	&B8ED	5	internal REAL store 2
+&B10E	&B8F2	5	internal REAL store 3
+&B113	&B8F7	1	DEG / RAD flag (&00=RAD; &FF=DEG)
+
+Used by editor
+---
+&B114	&B8DC	1	
+&B115	&B8DD	1	insert overwrite mode flag
+&B116	&B8DE	2   copy cursor rel to origin	
+&B117	&B8DF	1	copy cursor Y rel to origin 
+
+Area used for Cassette handling:
+----
+&B118	&B800	1	cassette handling messages flag (0=enabled; <>O=disabled)
+&B119	&B801	1	
+&B11A	&B802	1	file IN flag (&00=closed; &02=IN file; &03=opened; &05=IN char)
+&B11B	&B803	2	address of 2K buffer for directories
+&B11D	&B805	2	address of 2K buffer for loading blocks of files - often as &B11B
+&B11F	&B807	&40	IN Channel header
+&B11F	&B807	&10	filename (padded with NULs)
+&B12F	&B817	1	number of block being loaded, or next to be loaded
+&B130	&B818	1	last block flag (&FF=last block; &00=not)
+&B131	&B819	1	file type (&00=BASIC; &01=Protected BASIC; &02=Binary; &08=Screen; &16=ASCII)
+&B132	&B81A	2	length of this block
+&B134	&B81C	2	address to load this or the next block at,or the address of the byte after last one loaded
+&B136	&B81E	1	first block flag (&FF=first block; &00=not)
+&B137	&B81F	2	total length of file (all blocks)
+&B139	&B821	2	execution address for BIN files (&0000 if not saved as such)
+&B13B	&B823	&24	not allocated
+&B15F	&B847	1	file OUT flag (&00=closed; &02=IN file; &03=opened; &05=IN char)
+&B160	&B848	2	address to start the next block save from, or the address of the buffer if it is OPENOUT
+&B162	&B84A	2	address of start of the last block saved, or the address of the buffer if it is OPENOUT
+&B164	&B84C	&40	OUT Channel Header (details as IN Channel Header):
+&B164	&B84C	&10	filename
+&B174	&B85C	1	number of the block being saved, or next to be saved
+&B175	&B85D	1	last block flag (&FF=last block; &00=not)
+&B176	&B85E	1	file type (as at &B131
+&B177	&B85F	2	length saved so far
+&B179	&B861	2	address of start of area to save, or address of buffer if it is an OPENOUT instruction
+&B17B	&B863	1	first block flag (&FF=first block; &00=not)
+&B17C	&B864	2	total length of file to be saved
+&B17E	&B866	2	execution address for BIN files (&0000 if parameter not supplied)
+&B180	&B868	&24	not allocated
+&B1A4	&B88C	&40	used to construct IN Channel header:
+&B1B5	&B89D	1	
+&B1B7	&B89F	2		
+&B1BE	&B8A6	1	
+&B1B9	&B51D		base address for calculating relevant Sound Channel block
+&B1BC	&B520		base address for calculating relevant Sound Channel ?
+&B1BE	&B522		base address for calculating relevant Sound Channel ?
+&B1D5	&B539		base address for calculating relevant Sound Channel ?
+&B1E4	&B8CC	1	
+&B1E5	&B8CD	1	synchronisation byte
+&B1E6	&B8CE	2	&55, &62
+&B1E8	&B8D0	1	
+&B1E9	&B8D1	1	cassette precompensation (default &06; SPEED WRITE 1 &0C @4microseconds)
+&B1EA	&B8D2	1	cassette `Half a Zero' duration (default &53; SPEED WRITE 1 &29 @ 4microseconds)
+&B1EB	&B8D3	2	
+
+Used by sound pack
+----
+&B550	1	used by sound routines
+&B551	1	used by sound routines
+&B1ED		1	used by sound routines
+&B1EE	&B552	1	used by sound routines
+&B1F0	&BB54	1	used by sound routines
+&BB55	7	used by sound and cassette routines
+&B1F8	&B55C	&3F	Sound Channel A (1) data:
+&B212	&B576	1	number of sounds still queuing
+&B213	&B577	1	number of sounds originally queuing
+&B217	&B57B	8	first or fifth sound in Channel 1 (A) queue:
+&B217	&B57B	1	status: b0 to b2 = rendezvous with channel 1, 2 or 4; b3 = Hold; b4 = Flush
+&B218	&B57C	1	b0 to b3 = tone envelope number; b4 to b7 = volume envelope number (ie ENV number*16)
+&B219	&B57D	2	pitch
+&B21B	&B57F	1	noise
+&B21C	&B580	1	volume
+&B21D	&B581	2	duration (in 0.01 seconds)
+&B21F	&B583	8	second sound in Channel 1 queue (as &B217)
+&B227	&B58B	8	third sound in Channel 1 queue (as &B217)
+&B22F	&B593	8	fourth sound in Channel 1 queue (as &B217)
+&B237	&B59B	&3F	Sound Channel B (2) data - as described at &B1F8
+&B256	&B5BA	8	first or fifth sound in Channel 2 queue (as &B217)
+&B25E	&B5C2	8	second sound in Channel 2 queue (as &B217)
+&B266	&B5CA	8	third sound in Channel 2 queue (as &B217)
+&B26E	&B5D2	8	fourth sound in Channel 2 queue (as &B217)
+&B276	&B5DA	&3F	Sound Channel C (4) data - as described at &B1F8
+&B295	&B5F9	8	first or fifth sound in Channel 4 queue (as &B217)
+&B29D	&B601	8	2nd sound in Channel 4 queue (as &B217)
+&B2A5	&B609	8	3rd sound in Channel 4 queue (as &B217)
+&B2AD	&B611	8	4th sound in Channel 4 queue (as &B217)
+&B2A6	&B60A		base address for calculating relevant ENV parameter block
+==&B2B6	&B61A	15*16	ENV parameter block area (each arranged as &ADA2):
+&B2B6	&B61A	&10	ENV 1
+&B2C6	&B62A	&10	ENV 2
+&B2D6	&B63A	&10	ENV 3
+&B2E6	&B64A	&10	ENV 4
+&B2F6	&B65A	&10	ENV 5
+&B306	&B66A	&10	ENV 6
+&B316	&B67A	&10	ENV 7
+&B326	&B68A	&10	ENV 8
+&B336	&B69A	&10	ENV 9
+&B346	&B6AA	&10	ENV 10
+&B356	&B6BA	&10	ENV 11
+&B366	&B6CA	&10	ENV 12
+&B376	&B6DA	&10	ENV 13
+&B386	&B6EA	&10	ENV 14
+&B396	&B6FA	&10	ENV 15
+&B396	&B6FA		base address for calculating relevant ENT parameter block
+==&B3A6	&B70A	15*16	ENT parameter block area (each arranged as &ADA2):
+&B3A6	&B70A	&10	ENT 1
+&B3B6	&B71A	&10	ENT 2
+&B3C6	&B72A	&10	ENT 3
+&B3D6	&B73A	&10	ENT 4
+&B3E6	&B74A	&10	ENT 5
+&B3F6	&B75A	&10	ENT 6
+&B406	&B76A	&10	ENT 7
+&B416	&B77A	&10	ENT 8
+&B426	&B78A	&10	ENT 9
+&B436	&B79A	&10	ENT 10
+&B446	&B7AA	&10	ENT 11
+&B456	&B7BA	&10	ENT 12
+&B466	&B7CA	&10	ENT 13
+&B476	&B7DA	&10	ENT 14
+&B486	&B7EA	&10	ENT 15
+
+Used by keyboard pack
+----
+&B496	&B34C	&50	Normal Key Table:
+Cur U	Cur R	Cur D	f9	f6	f3	Enter	f.
+Cur L	Copy	f7	f8	f5	f1	f2	f0
+Clr	[	Ret	]	f4		\	
+^	-	@	p	;	:	/	.
+0	9	o	i	l	k	m	j
+8	7	u	y	h	j	n	Space
+6	5	r	t	g	f	b	v
+4	3	e	w	s	d	c	x
+1	2	Esc	q	Tab	a	Caps	z
+[VT]	[LF]	[BS]	[TAB]	Fire2	Fire1		Del
+&B4E6	&B39C	&50	Shifted Key Table:
+Cur U	Cur R	Cur D	f9	f6	f3	Enter	f.
+Cur L	Copy	f7	f8	f5	f1	f2	f0
+Clr	{	Ret	}	f4		`	
+£	=	|	P	+	*	?	>
+_	)	O	I	L	K	M	<
+(	'	U	Y	H	J	N	Space
+ &	%	R	T	G	F	B	V
+$	#	E	W	S	D	C	X
+!	"	Esc	Q	->	A	Caps	Z
+[VT]	[LF]	[BS]	[TAB]	Fire2	Fire1	Del
+&B536	&B3EC	&50	Control Key Table:
+Cur U	Cur R	Cur D	f9	f6	f3	Enter	f.
+Cur L	Copy	f7	f8	f5	f1	f2	f0
+Clr	(ESC)	Ret	(GS)	f4		(FS)	
+(RS)		(NUL)	(DLE)				
+(US)		(SI)	(HT)	(FF)	(VT)	(CR)	
+(NAK)	(EM)	(BS)	(LF)	(SO)	
+(DC2)	(DC4)	(BEL)	(ACK)	(STX)	(SYN)
+(ENQ)	(ETB)	(DC3)	(EOT)	(ETX)	(CAN)
+~	Esc	(DC1)	Ins/Ovrt	(SOH)	S-lck	(SUB)
+Del	
+&B586	&B43C	10	KB repeats table (each byte/bit applies to all three key tables): 1 byte is used per line of the tables; b0 to b7 give the columns (left to right), repeat if set
+&B590	&B446	&98	DEF KEY's definition area (for Keys &80 to &9F in sequence): each definition has either a single byte of &00 if it is unused/unaltered, or: byte 1: length of definition bytes 2 to x: definition, either a single key or a string of keys
+&B628	&B4DE	1	Byte after end of DEF KEY area
+&B629	&B4DF	1	
+&B62A	&B4E0	1	
+&B62B	&B4E1	2	address of DEF KEY area
+&B62D	&B4E3	2	address of byte after end of DEF KEY area
+&B62F	&B4E5	1	
+&B630	&B4E6	1	
+&B631	&B4E7	1	Shift lock flag (&00=off; &FF=on)
+&B632	&B4E8	1	Caps lock flag (&00=off; &FF=on)
+&B633	&B4E9	1	KB repeat period (SPEED KEY - default &02 @ 0.02 seconds)
+&B634	&B4EA	1	KB delay period (SPEED KEY - default &1E @ 0.02 seconds)
+&B635	&B4EB	20  2*10	Tables used for key scanning; bits 0 to 7 give the table columns (from left to right):
+&B635	&B4EB	1	
+Cur U	Cur R	Cur D	f9	f6	f3	Enter	f.
+&B636	&B4EC	1	
+Cur L	Copy	f7	f8	f5	f1	f2	f0
+&B637	&B4ED	1	
+Clr	[	Ret	]	f4	Shift	\	Ctrl
+&B638	&B4EE	1	
+^	-	@	p	;	:	/	.
+&B639	&B4EF	1	
+0	9	o	i	l	k	m	j
+&B63A	&B4F0	1	
+8	7	u	y	h	j	n	Space
+&B63B	&B4F1	1	
+Down	Up	Left	Right	Fire2	Fire1	(Joystick 1)
+6	5	r	t	g	f	b	v
+&B63C	&B4F2	1	
+4	3	e	w	s	d	c	x
+&B63D	&B4F3	1	
+1	2	Esc	q	Tab	a	Caps	z
+&B63E	&B4F4	1	
+Down	Up	Left	Right	Fire2	Fire1	(Joystick 2)
+Del
+&B63F	&B4F5	1	complement of &B635
+&B640	&B4F6	1	complement of &B636
+&B641	&B4F7	1	complement of &B637
+&B642	&B4F8	1	complement of &B638
+&B643	&B4F9	1	complement of &B639
+&B644	&B4FA	1	complement of &B63A
+&B645	&B4FB	1	complement of &B63B
+&B646	&B4FC	1	complement of &B63C
+&B647	&B4FD	1	complement of &B63D
+&B648	&B4FE	1	complement of &B63E
+&B64B	&B501		
+&B653	&B509	1	
+&B654	&B5OA	1	
+&B655	&B50B	1	
+&B656	&B50C	1	
+&B657	&B50D	7	event block for Keyboard handling, comprises:
+&B657	&B50D	2	chain address
+&B659	&B50F	1	count
+&B65A	&B510	1	class: express event
+&B65B	&B511	2	ROM routine address: &C492
+&B65D	&B513	1	ROM select number: &FD
+&B65E	&B514	40  20*2	store for last keys pressed and each entry is as follows: byte 1: +0 to +10=key tables' line number; if bit 5 is set then Shift is pressed; bit 7=Control is pressed byte 2: b0 to b7=key tables' column number - see &B496 etc
+&B67F	&B67F	2	vestige from the 464?
+&B686	&B53C	1	
+&B687	&B53D	1	accumulated count of the number of keys pressed (MOD 20)
+&B688	&B53E	1	number of keys left in key buffer
+&B689	&B53F	1	accumulated count of the number of keys removed from the buffer (MOD 20)
+&B68A	&B540	1	
+&B68B	&B541	2	address of the normal key table
+&B68D	&B543	2	address of the shifted key table
+&B68F	&B545	2	address of the control key table
+&B691	&B547	2	address of the KB repeats table
+&B692		1	
+
+Used by graphics packs
+----
+&B693	&B328	2	ORIGIN x
+&B695	&B32A	2	ORIGIN y
+&B697	&B32C	2	graphics text x position (pixel)
+&B699	&B32E	2	graphics text y position(pixel)
+&B69B	&B330	2	graphics window x of one edge (pixel)
+&B69D	&B332	2	graphics window x of other edge (pixel)
+&B69F	&B334	2	graphics window y of one side (pixel)
+&B6A1	&B336	2	graphics window y of other side (pixel)
+&B6A3	&B338	1	GRAPHICS PEN
+&B6A4	&B339	1	GRAPHICS PAPER
+&B6A5	&B33A	8/14	(This area is 14 bytes on the 464) Used by line drawing (and other) routines, as follows:
+&B6A7	&B33A	2	x+1()
+&B6A9	&B33C	2	y/2+1()
+&B6AB	&B33E	2	y/2-x()
+&B6AD	&B340	2	
+&B342	2	
+&B6AF	&B344	1	
+&B6B0	&B345	1	
+&B6B1	&B346	1	
+&B6B2		1	first point on drawn line flag (<>0=to be plotted; 0=don't plot)
+&B6B3		1	line MASK
+&B6B4		1	
+
+Used by text pack
+----
+&B6B5	&B20C	1	current stream number
+&B6B6	&B20D	14/15	(These areas are 15 bytes on the 464) Stream (window) 0 parameter block. These areas are arranged as &B726
+&B6C4	&B21C	14/15	stream (window) 1 parameter block
+&B6D2	&B22B	14/15	stream (window) 2 parameter block
+&B6E0	&B23A	14/15	stream (window) 3 parameter block
+&B6EE	&B249	14/15	stream (window) 4 parameter block
+&B6FC	&B258	14/15	stream (window) 5 parameter block
+&B70A	&B267	14/15	stream (window) 6 parameter block
+&B718	&B276	14/15	stream (window) 7 parameter block
+&B726	&B285	14/15	Current Stream (Window) parameter block:
+&B726	&B285	1	cursor y position (line) with respect to the whole screen (starting from 0)
+&B727	&B286	1	cursor x position (column) with respect to the whole screen (starting from 0)
+&B728	&B287		
+&B729	&B288	1	window top line (y) with respect to the whole screen (starting from 0)
+&B72A	&B289	1	window left column (x) with respect to the whole screen (starting from 0)
+&B72B	&B28A	1	window bottom line (y) with respect to the whole screen (starting from 0)
+&B72C	&B28B	1	window right colwnn (x) with respect to the whole screen (starting from 0)
+&B72D	&B28C	1	scroll count
+&B72E	&B28D	1	cursor flag (&01=disable; &02=off; &FD=on; &FE=enable)
+&B28E	1	
+&B72F	&B28F	1	current PEN number (encoded, not its INK number)
+&B730	&B290	1	current PAPER number (encoded, not its INK number)
+&B731	&B291	2	address of text background routine: opaque=&1392; transparent=&13A0
+&B733	&B293	1	graphics character writing flag (0=off; <>0=on)
+&B734	&B294	1	ASCII number of the first character in User Defined Graphic (UDG) matrix table
+&B735	&B295	1	UDG matrix table flag (&00=non-existent; &FF=present)
+&B736	&B296	2	address of UDG matrix table
+&B738	&B298	2	
+&B758	&B2B8	1	
+&B759	&B2B9	1	
+==&B763	&B2C3	32*3	Control Code handling routine table - each code's entry comprises: byte 1: +0 to +9=number of parameters; +&80=re-run routine at a System Reset bytes 2 and 3: address of the control code's handling routine
+&B763	&B2C3	3	ASC 0: &80,&1513: NUL
+&B766	&B2C6	3	ASC 1: &81,&1335: Print control code chararacter [,char]
+&B769	&B2C9	3	ASC 2: &80,&1297: Disable cursor
+&B76C	&B2CC	3	ASC 3: &80,&1286: Enable cursor
+&B76F	&B2CF	3	ASC 4: &81,&0AE9: Set mode [,mode]
+&B772	&B2D2	3	ASC 5: &81,&1940: Print character using graphics mode [,char]
+&B775	&B2D5	3	ASC 6: &00,&1459: Enable VDU
+&B778	&B2D8	3	ASC 7: &80,&14E1: Beep
+&B77B	&B2DB	3	ASC 8: &80,&1519: Back-space
+&B77E	&B2DE	3	ASC 9: &80,&151E: Step-right
+&B781	&B2E1	3	ASC 10: &80,&1523: Linefeed
+&B784	&B2E4	3	ASC 11: &80,&1528: Previous line
+&B787	&B2E7	3	ASC 12: &80,&154F: Clear window and locate the cursor at position 1,1
+&B78A	&B2EA	3	ASC 13: &80,&153F: RETURN
+&B78D	&B2ED	3	ASC 14: &81,&12AB: Set paper [,pen]
+&B790	&B2F0	3	ASC 15: &81,&12A6: Set pen [,pen]
+&B793	&B2F3	3	ASC 16: &80,&155E: Delete the character at the cursor position
+&B796	&B2F6	3	ASC 17: &80,&1599: Clear the line up to the current cursor position
+&B799	&B2F9	3	ASC 18: &80,&158F: Clear from the cursor position to the end of the line
+&B79C	&B2FC	3	ASC 19: &80,&1578: Clear from start of the window to the cursor position
+&B79F	&B2FF	3	ASC 20: &80,&1565: Clear from the cursor position to the end of a window
+&B7A2	&B302	3	ASC 21: &80,&1452: Disable VDU
+&B7A5	&B305	3	ASC 22: &81,&14EC: Set text write mode [,mode]
+&B7A8	&B308	3	ASC 23: &81,&0C55: Set graphics draw mode [,mode]
+&B7AB	&B30B	3	ASC 24: &80,&12C6: Exchange pen and paper
+&B7AE	&B30E	3	ASC 25: &89,&150D: Define user defined character [,char,8 rows of char]
+&B7B1	&B311	3	ASC 26: &84,&1501: Define window [,left,right,top,bottom]
+&B7B4	&B314	3	ASC 27: &00,&14EB: ESC (=user)
+&B7B7	&B317	3	ASC 28: &83,&14F1: Set the pen inks [,pen,ink 1,ink 2]
+&B7BA	&B31A	3	ASC 29: &82,&14FA: Set border colours [,ink,ink2]
+&B7BD	&B31D	3	ASC 30: &80,&1539: Locate the text cursor at position 1,1
+&B7C0	&B320	3	ASC 31: &82,&1547: Locate the text cursor at [,column,line]
+
+Used by screen pack
+----
+&B7C3	&B1C8	1	MODE number
+&B7C4	&B1C9	2	screen offset
+&B7C6	&B1CB	1	screen base HB (LB taken as &00)
+&B7C7	&B1CC	3	graphics VDU write mode indirection - JP &0C74
+&B1CF	8	list of bytes having only one bit set, from b7 down to b0
+&B7D2	&B1D7	1	first flash period (SPEED INK - default &0A @ 0.02 seconds)
+&B7D3	&B1D8	1	second flash period (SPEED INK - default &0A @ 0.02 seconds)
+==&B7D4	&B1D9	1+16	Border and Pens' First Inks (as hardware numbers):
+&B7D4	&B1D9	1	hw &04 = sw 1 (blue) border
+&B7D5	&B1DA	1	hw &04 = sw 1 (blue) pen 0
+&B7D6	&B1DB	1	hw &0A = sw 24 (bright yellow) pen 1
+&B7D7	&B1DC	1	hw &13 = sw 20 (bright cyan) pen 2
+&B7D8	&B1DD	1	hw &0C = sw 6 (bright red) pen 3
+&B7D9	&B1DE	1	hw &0B = sw 26 (bright white) pen 4
+&B7DA	&B1DF	1	hw &14 = sw 0 (black) pen 5
+&B7DB	&B1E0	1	hw &15 = sw 2 (bright blue) pen 6
+&B7DC	&B1E1	1	hw &0D = sw 8 (bright magenta) pen 7
+&B7DD	&B1E2	1	hw &06 = sw 10 (cyan) pen 8
+&B7DE	&B1E3	1	hw &1E = sw 12 (yellow) pen 9
+&B7DF	&B1E4	1	hw &1F = sw 14 (pale blue) pen 10
+&B7E0	&B1E5	1	hw &07 = sw 16 (pink) pen 11
+&B7E1	&B1E6	1	hw &12 = sw 18 (bright green) pen 12
+&B7E2	&B1E7	1	hw &19 = sw 22 (pale green) pen 13
+&B7E3	&B1E8	1	hw &04 = sw 1 (blue) pen 14
+&B7E4	&B1E9	1	hw &17 = sw 11 (sky blue) pen 15
+&B7E5	&B1EA	==1+16	Border and Pens' Second Inks (as hardware numbers):
+&B7E5	&B1EA	1	hw &04 = sw 1 (blue) border
+&B7E6	&B1EB	1	hw &04 = sw 1 (blue) pen 0
+&B7E7	&B1EC	1	hw &0A = sw 24 (bright yellow) pen 1
+&B7E8	&B1ED	1	hw &13 = sw 20 (bright cyan) pen 2
+&B7E9	&B1EE	1	hw &0C = sw 6 (bright red) pen 3
+&B7EA	&B1FF	1	hw &0B = sw 26 (bright white) pen 4
+&B7EB	&B1F0	1	hw &14 = sw 0 (black) pen 5
+&B7EC	&B1F1	1	hw &15 = sw 2 (bright blue) pen 6
+&B7ED	&B1F2	1	hw &0D = sw 8 (bright magenta) pen 7
+&B7EE	&B1F3	1	hw &06 = sw 10 (cyan) pen 8
+&B7EF	&B1F4	1	hw &1E = sw 12 (yellow) pen 9
+&B7F0	&B1F5	1	hw &1F = sw 14 (pale blue) pen 10
+&B7F1	&B1F6	1	hw &07 = sw 16 (pink) pen 11
+&B7F2	&B1F7	1	hw &12 = sw 18 (bright green) pen 12
+&B7F3	&B1F8	1	hw &19 = sw 22 (pale green) pen 13
+&B7F4	&B1F9	1	hw &04 = sw 1 (bright yellow) pen 14
+&B7F5	&B1FA	1	hw &17 = sw 11 (pink) pen 15
+&B7F6	&B1FB	1	
+&B7F7	&B1FC	1	
+&B7F8	&B1FD	1	
+&B7F9	&BlFE	2	
+&B7FB	&B200	2	
+&B7FD			
+&B802		2   1+1	
+
+Used by Machine Pack
+----
+&B804		1	number of entries in the Printer Translation Table (normally 10)
+==&B805		20*2	Printer Translation Table; each entry comprises: byte 1: screen code byte 2: pnnter code
+&B805		2	screen &A0 printer &5E (acute accent)
+&B807		2	screen &A1 printer &5C (\)
+&B809		2	screen &A2 printer &7B ({)
+&B80B		2	screen &A3 printer &23 (#)
+&B80D		2	screen &A6 printer &40 (@)
+&B80F		2	screen &AB printer &7C (|)
+&B811		2	screen &AC printer &7D (})
+&B813		2	screen &AD printer &7E (~)
+&B815		2	screen &AE printer &5D (])
+&B817		2	screen &AF printer &SE ([)
+&B819		20	room for ten more translations
+
+Used by Kernel Pack
+----
+&B82D	&B100	1	
+&B82E	&B101	1	
+&B82F	&B102	2	
+&B831	&B104	1	
+&B832	&B105	2	temporary store for stack pointer (SP) during interrupt handling
+&B834	&B107	&70	temporary machine stack (from &B8B3 downwards) during interrupt handling
+&B8B4	&B187	4	TIME (stored with the LB first - four bytes give >166 days; three bytes give >15 hours)
+&B8B8	&B18B	1	
+&B8B9	&B18C	2	
+&B8BB	&B18E	2	
+&B8BD	&B190	2	address of the first ticker block in chain (if any)
+&B8BF	&B192	1	Keyboard scan flag (&00=scan not needed; &01=scan needed)
+&B8C0	&B193	2	address of the first event block in chain (if any)
+&B8C1   &B194   1   High byte of above: Address of the first event block in the chain (if any)
+&B8C2	&B195	1	
+&B8C3	&B196	&10	buffer for last RSX or RSX command name (last character has bit 7 set)
+&B8D3	&B1A6	2	address of first ROM or RSX chaining block in chain
+&B8D5		1	RAM bank number
+&B8D6	&B1A8	1	Upper ROM status (eg select number)
+&B8D7	&B1A9	2	entry point of foreground ROM in use (eg &C006 for BASIC ROM)
+&B8D9	&B1AB	1	foreground ROM select address (0 for the BASIC ROM)
+&B8DA		16*2	ROM entry IY value (ie the address table) - the 6128 has ROMs numbered from 0 to 15:
+&B1AC	7*2	ROM entry IY value (ie the address table)
+&B8DA		2	ROM 0 IY (not for the 464)
+&B8DC	&B1AC	2	ROM 1 IY
+&B8DE	&B1AE	2	ROM 2 IY
+&B8E0	&B1B0	2	ROM 3 IY
+&B8E2	&B1B2	2	ROM 4 IY
+&B8E4	&B1B4	2	ROM 5 IY
+&B8E6	&B1B6	2	ROM 6 IY
+&B8E8	&B1B8	2	ROM 7 IY (usually &A700 for AMSDOS/CPM ROM)
+&B8EA		2	ROM 8 IY (not 464)
+&B8EC		2	ROM 9 IY (not 464)
+&B8EE		2	ROM 10 IY (not 464)
+&B8F0		2	ROM 11 IY (not 464)
+&B8F2		2	ROM 12 IY (not 464)
+&B8F4		2	ROM 13 IY (not 464)
+&B8F6		2	ROM 14 IY (not 464)
+&B8F8		2	ROM 15 IY (not 464)
+&B8FA		6	6 bytes of &FF
+&B1BA	14	14 bytes of &00
+
+Jumpblocks
+----
+&B900	&B900	12*3	High Kernel Jumpblock (on the 464 this block is 11*3 bytes in size)
+&B924	&B921	&1C0	routines used by the High Kernel Jumpblock (on the 464 this is &1C8 bytes in size)
+&BAE4	&BAE9		bytes of &FF (&1C bytes on 6128, &17 bytes on 464)
+&BB00	&BB00	26*3	Key Manager Jumpblock
+&BB4E	&BB4E	36*3	Text VDU Jumpblock
+&BBBA	&BBBA	23*3	Graphics VDU Jumpblock
+&BBFF	&BBFF	34*3	Screen Pack Jumpblock
+&BC65	&BC65	22*3	Cassette (and Disc if fitted) Manager Jumpblock
+&BCA7	&BCA7	11*3	Sound Manager Jumpblock
+&BCC8	&BCC8	25*3	Kernel Jumpblock
+&BD13	&BD13	26*3	Machine Pack Jumpblock (on the 464 this block is 14*3 bytes in size)
+&BD61	&BD3D	32*3	Maths Jumpblock (on the 464 this block is 48*3 bytes in size)
+&BDCD	&BDCD	14*3	Firmware Indirections (on the 464 this block is 13*3 bytes in size
+&BDF7	&BDF4		bytes of &00 (&09 bytes on 6128, &0C bytes on the 464) the lower limit of Machine Stack if no Disc Drive
+&BE00	&BE00	&40	&40 bytes of &FF
