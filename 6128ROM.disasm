@@ -17,7 +17,7 @@
 ;prove better for modification, assembly and re-use. The former for 
 ;exploration and reverse engineering.
 
-;For more details see: <<github link>>
+;For more details see: https://github.com/Bread80/CPC6128-Firmware-Source
 ;and http://Bread80.com
 
 
