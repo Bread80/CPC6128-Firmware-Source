@@ -10,19 +10,19 @@
 ; RST 0 - LOW: RESET ENTRY
 
 org $0000                         ;##LIT##
-include "JumpblockHigh.asm"
-include "JumpblockIndirections.asm"
-include "MemoryFirmware.asm"
+include "Includes/JumpblockHigh.asm"
+include "Includes/JumpblockIndirections.asm"
+include "Includes/MemoryFirmware.asm"
         ld      bc,$7f89          ;{{0000:01897f}}  select mode 1, disable upper rom, enable lower rom		
         out     (c),c             ;{{0003:ed49}}  select mode and rom configuration
         jp      STARTUP_entry_point;{{0005:c39105}} 
 ;;+----------------------------------------------------------------
         jp      RST_1__LOW_LOW_JUMP;{{0008:c38ab9}}  RST 1 - LOW: LOW JUMP
 ;;+----------------------------------------------------------------
-        jp      LOW_KL_LOW_PCHL   ;{{000B:c384b9}}  LOW: KL LOW PCHL
+        jp      LOW_KL_LOW_PCHL   ;{{000b:c384b9}}  LOW: KL LOW PCHL
 ;;+----------------------------------------------------------------
-        push    bc                ;{{000E:c5}}  LOW: PCBC INSTRUCTION
-        ret                       ;{{000F:c9}} 
+        push    bc                ;{{000e:c5}}  LOW: PCBC INSTRUCTION
+        ret                       ;{{000f:c9}} 
 ;;+----------------------------------------------------------------
         jp      RST_2__LOW_SIDE_CALL;{{0010:c31dba}}  RST 2 - LOW: SIDE CALL
 ;;+----------------------------------------------------------------
@@ -35,13 +35,13 @@ LOW_PCDE_INSTRUCTION:             ;{{Addr=$0016 Code Calls/jump count: 2 Data us
 ;;+----------------------------------------------------------------
         jp      RST_3__LOW_FAR_CALL;{{0018:c3c7b9}}  RST 3 - LOW: FAR CALL
 ;;+----------------------------------------------------------------
-        jp      LOW_KL_FAR_PCHL   ;{{001B:c3b9b9}}  LOW: KL FAR PCHL
+        jp      LOW_KL_FAR_PCHL   ;{{001b:c3b9b9}}  LOW: KL FAR PCHL
 ;;+----------------------------------------------------------------
 ;; LOW: PCHL INSTRUCTION
 LOW_PCHL_INSTRUCTION:             ;{{Addr=$001e Code Calls/jump count: 2 Data use count: 0}}
-        jp      (hl)              ;{{001E:e9}}  LOW: PCHL INSTRUCTION
+        jp      (hl)              ;{{001e:e9}}  LOW: PCHL INSTRUCTION
 ;;+----------------------------------------------------------------
-        nop                       ;{{001F:00}} 
+        nop                       ;{{001f:00}} 
 ;;+----------------------------------------------------------------
         jp      RST_4__LOW_RAM_LAM;{{0020:c3c6ba}}  RST 4 - LOW: RAM LAM
 ;;+----------------------------------------------------------------
@@ -52,13 +52,13 @@ LOW_PCHL_INSTRUCTION:             ;{{Addr=$001e Code Calls/jump count: 2 Data us
 ;;+----------------------------------------------------------------
 ;; RST 5 - LOW: FIRM JUMP
         jp      rst_5__low_firm_jump_B;{{0028:c335ba}}  RST 5 - LOW: FIRM JUMP
-        nop                       ;{{002B:00}} 
+        nop                       ;{{002b:00}} 
 ;;+----------------------------------------------------------------     
 ;;do rst 6
 do_rst_6:                         ;{{Addr=$002c Code Calls/jump count: 1 Data use count: 0}}
-        out     (c),c             ;{{002C:ed49}} 
-        exx                       ;{{002E:d9}} 
-        ei                        ;{{002F:fb}} 
+        out     (c),c             ;{{002c:ed49}} 
+        exx                       ;{{002e:d9}} 
+        ei                        ;{{002f:fb}} 
 ;;+----------------------------------------------------------------
 ;; RST 6 - LOW: USER RESTART
 ;This restart is free for the end user to use as they wish.
@@ -77,11 +77,11 @@ RST_6__LOW_USER_RESTART:          ;{{Addr=$0030 Code Calls/jump count: 0 Data us
 ;; This is the default handler in the ROM. The user can patch the RAM version of this
 ;; handler.
 LOW_EXT_INTERRUPT:                ;{{Addr=$003b Code Calls/jump count: 1 Data use count: 0}}
-        ret                       ;{{003B:c9}}  LOW: EXT INTERRUPT
-        nop                       ;{{003C:00}} 
-        nop                       ;{{003D:00}} 
-        nop                       ;{{003E:00}} 
-        nop                       ;{{003F:00}} 
+        ret                       ;{{003b:c9}}  LOW: EXT INTERRUPT
+        nop                       ;{{003c:00}} 
+        nop                       ;{{003d:00}} 
+        nop                       ;{{003e:00}} 
+        nop                       ;{{003f:00}} 
 
 ;;==================================================================
 ;; END OF LOW KERNEL JUMPBLOCK

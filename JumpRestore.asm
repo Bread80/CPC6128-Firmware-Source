@@ -5,12 +5,12 @@
 
 ;; main firmware jumpblock
 JUMP_RESTORE:                     ;{{Addr=$08bd Code Calls/jump count: 1 Data use count: 1}}
-        ld      hl,main_firmware_jumpblock;{{08BD:21de08}}  table of addressess for firmware functions
-        ld      de,Key_Manager_Jumpblock;{{08C0:1100bb}}  start of firmware jumpblock
-        ld      bc,$cbcf          ;{{08C3:01cfcb}}  B = 203 entries, C = 0x0cf -> RST 1 -> LOW: LOW JUMP
-        call    _jump_restore_5   ;{{08C6:cdcc08}} 
+        ld      hl,main_firmware_jumpblock;{{08bd:21de08}}  table of addressess for firmware functions
+        ld      de,Key_Manager_Jumpblock;{{08c0:1100bb}}  start of firmware jumpblock
+        ld      bc,$cbcf          ;{{08c3:01cfcb}}  B = 203 entries, C = 0x0cf -> RST 1 -> LOW: LOW JUMP
+        call    _jump_restore_5   ;{{08c6:cdcc08}} 
 
-        ld      bc,$20ef          ;{{08C9:01ef20}}  B = number of entries: 32 entries ##LIT##;WARNING: Code area used as literal
+        ld      bc,$20ef          ;{{08c9:01ef20}}  B = number of entries: 32 entries ##LIT##;WARNING: Code area used as literal
                                   ; C=  0x0ef -> RST 5 -> LOW: FIRM JUMP
 ;;-------------------------------------------------------------------------------------
 ; C = 0x0cf -> RST 1 -> LOW: LOW JUMP
@@ -18,21 +18,21 @@ JUMP_RESTORE:                     ;{{Addr=$08bd Code Calls/jump count: 1 Data us
 ; C=  0x0ef -> RST 5 -> LOW: FIRM JUMP
 
 _jump_restore_5:                  ;{{Addr=$08cc Code Calls/jump count: 2 Data use count: 0}}
-        ld      a,c               ;{{08CC:79}}  write RST instruction 			
-        ld      (de),a            ;{{08CD:12}} 
-        inc     de                ;{{08CE:13}} 
-        ldi                       ;{{08CF:eda0}}  write low byte of address in ROM
-        inc     bc                ;{{08D1:03}} 
-        cpl                       ;{{08D2:2f}} 
-        rlca                      ;{{08D3:07}} 
-        rlca                      ;{{08D4:07}} 
-        and     $80               ;{{08D5:e680}} 
-        or      (hl)              ;{{08D7:b6}} 
-        ld      (de),a            ;{{08D8:12}}  write high byte of address in ROM
-        inc     de                ;{{08D9:13}} 
-        inc     hl                ;{{08DA:23}} 
-        djnz    _jump_restore_5   ;{{08DB:10ef}} 
-        ret                       ;{{08DD:c9}} 
+        ld      a,c               ;{{08cc:79}}  write RST instruction 			
+        ld      (de),a            ;{{08cd:12}} 
+        inc     de                ;{{08ce:13}} 
+        ldi                       ;{{08cf:eda0}}  write low byte of address in ROM
+        inc     bc                ;{{08d1:03}} 
+        cpl                       ;{{08d2:2f}} 
+        rlca                      ;{{08d3:07}} 
+        rlca                      ;{{08d4:07}} 
+        and     $80               ;{{08d5:e680}} 
+        or      (hl)              ;{{08d7:b6}} 
+        ld      (de),a            ;{{08d8:12}}  write high byte of address in ROM
+        inc     de                ;{{08d9:13}} 
+        inc     hl                ;{{08da:23}} 
+        djnz    _jump_restore_5   ;{{08db:10ef}} 
+        ret                       ;{{08dd:c9}} 
 
 ;;+--------------------------------------------------------------
 ;; main firmware jumpblock
@@ -290,15 +290,15 @@ main_firmware_jumpblock:          ;{{Addr=$08de Data Calls/jump count: 0 Data us
 ;; 3.. = data
 
 initialise_firmware_indirections: ;{{Addr=$0ab4 Code Calls/jump count: 6 Data use count: 0}}
-        ld      c,(hl)            ;{{0AB4:4e}} 
-        ld      b,$00             ;{{0AB5:0600}} 
-        inc     hl                ;{{0AB7:23}} 
-        ld      e,(hl)            ;{{0AB8:5e}} 
-        inc     hl                ;{{0AB9:23}} 
-        ld      d,(hl)            ;{{0ABA:56}} 
-        inc     hl                ;{{0ABB:23}} 
-        ldir                      ;{{0ABC:edb0}} 
-        ret                       ;{{0ABE:c9}} 
+        ld      c,(hl)            ;{{0ab4:4e}} 
+        ld      b,$00             ;{{0ab5:0600}} 
+        inc     hl                ;{{0ab7:23}} 
+        ld      e,(hl)            ;{{0ab8:5e}} 
+        inc     hl                ;{{0ab9:23}} 
+        ld      d,(hl)            ;{{0aba:56}} 
+        inc     hl                ;{{0abb:23}} 
+        ldir                      ;{{0abc:edb0}} 
+        ret                       ;{{0abe:c9}} 
 
 
 

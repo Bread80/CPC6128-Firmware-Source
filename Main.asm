@@ -23,6 +23,8 @@
 ;; KERNEL ROUTINES
 include "LowJumpblock.asm"
 include "Kernel.asm"
+
+;;<<<<<<<<<<<<<<<<<<<<<<<<<<<<END OF DATA COPIED TO HI JUMPBLOCK
 include "HighJumpblock.asm"
 include "Machine.asm"
 include "JumpRestore.asm"
