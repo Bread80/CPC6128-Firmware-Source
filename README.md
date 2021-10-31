@@ -1,7 +1,7 @@
 Amstrad CPC464/CPC664/CPC672/CPC6128 Firmware 'Unassembly'
 ===
 
-This repository is the end result of a project to 'unassemble' the Amstrad CPC firmware. I use the word 'unassemble' to mean creating a version of the firmware source code which can be modified and reassembled. This differs from 'disassembly' in that 'unassembling' involves adding (meaningful) labels to the code and converting the targets of calls, jumps, loads etc to use those labels. It's impossible to verify that the end result is 100% correct but I've taken numerous steps to try and ensure these listings are as correct as possible. For more details of the 'unassembly' process see the About Unassembly section below.
+This repository is the end result of a project to 'unassemble' the Amstrad CPC firmware. I use the word 'unassemble' to mean creating a version of the firmware source code which can be modified and reassembled. This differs from 'disassembly' in that 'unassembling' involves adding (meaningful) labels to the code and converting the targets of calls, jumps, loads etc to use those labels. It's impossible to verify that the end result is 100% semantically correct but I've taken numerous steps to try and ensure these listings are as correct as possible (including checking that it assembled to the exact same bytes). For more details of the 'unassembly' process see the About Unassembly section below.
 
 This project builds on previous disassembly and reverse engineering work which can be found at http://cpctech.cpc-live.com/docs/os.asm
 
