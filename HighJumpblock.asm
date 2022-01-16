@@ -120,7 +120,7 @@ LOW_KL_LOW_PCHL:                  ;{{Addr=$042a Code Calls/jump count: 1 Data us
         push    hl                ;{{042b/b985:e5}}  store HL onto stack
         exx                       ;{{042c/b986:d9}} 
         pop     de                ;{{042d/b987:d1}}  get it back from stack
-        jr      _rst_1__low_low_jump_6;{{042e/b988:1806}}  
+        jr      low_jp_de         ;{{042e/b988:1806}}  
 
 ;;============================================================================================
 ;; RST 1 - LOW: LOW JUMP
@@ -134,41 +134,48 @@ RST_1__LOW_LOW_JUMP:              ;{{Addr=$0430 Code Calls/jump count: 1 Data us
         ld      d,(hl)            ;{{0435/b98f:56}} 
 
 ;;--------------------------------------------------------------------------------------------
-_rst_1__low_low_jump_6:           ;{{Addr=$0436 Code Calls/jump count: 1 Data use count: 0}}
+;;= low jp de
+low_jp_de:                        ;{{Addr=$0436 Code Calls/jump count: 1 Data use count: 0}}
         ex      af,af'            ;{{0436/b990:08}} 
         ld      a,d               ;{{0437/b991:7a}} 
-        res     7,d               ;{{0438/b992:cbba}} 
+        res     7,d               ;{{0438/b992:cbba}} Mask to a lower ROM address
         res     6,d               ;{{043a/b994:cbb2}} 
-        rlca                      ;{{043c/b996:07}} 
+        rlca                      ;{{043c/b996:07}} rotate ROM code into bits 1,0
         rlca                      ;{{043d/b997:07}} 
 
 ;;---------------------------------------------------------------------------------------------
-_rst_1__low_low_jump_12:          ;{{Addr=$043e Code Calls/jump count: 1 Data use count: 0}}
-        rlca                      ;{{043e/b998:07}} 
+;;= low jp de with rom state in a
+low_jp_de_with_rom_state_in_a:    ;{{Addr=$043e Code Calls/jump count: 1 Data use count: 0}}
+        rlca                      ;{{043e/b998:07}} rotate ROM code into bits 3,2
         rlca                      ;{{043f/b999:07}} 
         xor     c                 ;{{0440/b99a:a9}} 
         and     $0c               ;{{0441/b99b:e60c}} 
         xor     c                 ;{{0443/b99d:a9}} 
         push    bc                ;{{0444/b99e:c5}} 
-        call    copied_to_b9b0_in_RAM;{{0445/b99f:cdb0b9}} 
-        di                        ;{{0448/b9a2:f3}} 
+        call    set_rom_state_and_cleanup_and_JP_DE;{{0445/b99f:cdb0b9}} ROM select and CALL address in DE
+
+        di                        ;{{0448/b9a2:f3}} Now do cleanup and return to caller
         exx                       ;{{0449/b9a3:d9}} 
         ex      af,af'            ;{{044a/b9a4:08}} 
         ld      a,c               ;{{044b/b9a5:79}} 
         pop     bc                ;{{044c/b9a6:c1}} 
-_rst_1__low_low_jump_24:          ;{{Addr=$044d Code Calls/jump count: 1 Data use count: 0}}
+
+;;=cleanup and return after rom call
+cleanup_and_return_after_rom_call:;{{Addr=$044d Code Calls/jump count: 1 Data use count: 0}}
         and     $03               ;{{044d/b9a7:e603}} 
         res     1,c               ;{{044f/b9a9:cb89}} 
         res     0,c               ;{{0451/b9ab:cb81}} 
         or      c                 ;{{0453/b9ad:b1}} 
-        jr      _copied_to_b9b0_in_ram_1;{{0454/b9ae:1801}}  (+&01)
+        jr      set_rom_state_and_cleanup;{{0454/b9ae:1801}}  (+&01)
 
 ;;============================================================================================
-;; copied to &b9b0 in RAM
-
-copied_to_b9b0_in_RAM:            ;{{Addr=$0456 Code Calls/jump count: 2 Data use count: 0}}
+;; set rom state and cleanup and JP DE
+; restores ROM state, registers etc and jumps to address in DE 
+; (and then returns to caller)
+set_rom_state_and_cleanup_and_JP_DE:;{{Addr=$0456 Code Calls/jump count: 2 Data use count: 0}}
         push    de                ;{{0456/b9b0:d5}} 
-_copied_to_b9b0_in_ram_1:         ;{{Addr=$0457 Code Calls/jump count: 1 Data use count: 0}}
+;;=set rom state and cleanup
+set_rom_state_and_cleanup:        ;{{Addr=$0457 Code Calls/jump count: 1 Data use count: 0}}
         ld      c,a               ;{{0457/b9b1:4f}} 
         out     (c),c             ;{{0458/b9b2:ed49}} 
         or      a                 ;{{045a/b9b4:b7}} 
@@ -179,6 +186,7 @@ _copied_to_b9b0_in_ram_1:         ;{{Addr=$0457 Code Calls/jump count: 1 Data us
 
 ;;============================================================================================
 ;; LOW: KL FAR PCHL
+; call to address in HL, ROM select in C
 LOW_KL_FAR_PCHL:                  ;{{Addr=$045f Code Calls/jump count: 1 Data use count: 0}}
         di                        ;{{045f/b9b9:f3}} 
         ex      af,af'            ;{{0460/b9ba:08}} 
@@ -186,19 +194,21 @@ LOW_KL_FAR_PCHL:                  ;{{Addr=$045f Code Calls/jump count: 1 Data us
         push    hl                ;{{0462/b9bc:e5}} 
         exx                       ;{{0463/b9bd:d9}} 
         pop     de                ;{{0464/b9be:d1}} 
-        jr      _rst_3__low_far_call_15;{{0465/b9bf:1815}}  (+&15)
+        jr      do_far_call_to_de_a;{{0465/b9bf:1815}}  (+&15)
 
 ;;============================================================================================
 ;; LOW: KL FAR ICALL
+; call to 3-byte indirect address. HL=pointer to address data (address, rom select)
 LOW_KL_FAR_ICALL:                 ;{{Addr=$0467 Code Calls/jump count: 2 Data use count: 0}}
         di                        ;{{0467/b9c1:f3}} 
         push    hl                ;{{0468/b9c2:e5}} 
         exx                       ;{{0469/b9c3:d9}} 
         pop     hl                ;{{046a/b9c4:e1}} 
-        jr      _rst_3__low_far_call_9;{{046b/b9c5:1809}}  (+&09)
+        jr      do_indirect_far_call_to_athl;{{046b/b9c5:1809}}  (+&09)
 
 ;;============================================================================================
 ;; RST 3 - LOW: FAR CALL
+;; call to 3-byte inline address (address, rom select)
 ;;
 ;; far call limits rom select to 251. So firmware can call functions in ROMs up to 251.
 ;; If you want to access ROMs above this use KL ROM SELECT.
@@ -206,30 +216,34 @@ LOW_KL_FAR_ICALL:                 ;{{Addr=$0467 Code Calls/jump count: 2 Data us
 RST_3__LOW_FAR_CALL:              ;{{Addr=$046d Code Calls/jump count: 1 Data use count: 0}}
         di                        ;{{046d/b9c7:f3}} 
         exx                       ;{{046e/b9c8:d9}} 
-        pop     hl                ;{{046f/b9c9:e1}} 
-        ld      e,(hl)            ;{{0470/b9ca:5e}} 
+        pop     hl                ;{{046f/b9c9:e1}} Get return address
+        ld      e,(hl)            ;{{0470/b9ca:5e}} DE=address of far pointer
         inc     hl                ;{{0471/b9cb:23}} 
         ld      d,(hl)            ;{{0472/b9cc:56}} 
         inc     hl                ;{{0473/b9cd:23}} 
-        push    hl                ;{{0474/b9ce:e5}} 
-        ex      de,hl             ;{{0475/b9cf:eb}} 
-_rst_3__low_far_call_9:           ;{{Addr=$0476 Code Calls/jump count: 1 Data use count: 0}}
-        ld      e,(hl)            ;{{0476/b9d0:5e}} 
+        push    hl                ;{{0474/b9ce:e5}} Restore new return address
+        ex      de,hl             ;{{0475/b9cf:eb}} HL=address to far pointer
+
+;;= do indirect far call to athl
+do_indirect_far_call_to_athl:     ;{{Addr=$0476 Code Calls/jump count: 1 Data use count: 0}}
+        ld      e,(hl)            ;{{0476/b9d0:5e}} DE=address to call
         inc     hl                ;{{0477/b9d1:23}} 
         ld      d,(hl)            ;{{0478/b9d2:56}} 
         inc     hl                ;{{0479/b9d3:23}} 
         ex      af,af'            ;{{047a/b9d4:08}} 
-        ld      a,(hl)            ;{{047b/b9d5:7e}} 
+        ld      a,(hl)            ;{{047b/b9d5:7e}} ROM select state
+
+;;= do far call to de a
 ;; &fc - no change to rom select, enable upper and lower roms
 ;; &fd - no change to rom select, enable upper disable lower
 ;; &fe - no change to rom select, disable upper and enable lower
 ;; &ff - no change to rom select, disable upper and lower roms
-_rst_3__low_far_call_15:          ;{{Addr=$047c Code Calls/jump count: 1 Data use count: 0}}
+do_far_call_to_de_a:              ;{{Addr=$047c Code Calls/jump count: 1 Data use count: 0}}
         cp      $fc               ;{{047c/b9d6:fefc}} 
-        jr      nc,_rst_1__low_low_jump_12;{{047e/b9d8:30be}} 
+        jr      nc,low_jp_de_with_rom_state_in_a;{{047e/b9d8:30be}} 
 
 ;; allow rom select to change
-_rst_3__low_far_call_17:          ;{{Addr=$0480 Code Calls/jump count: 1 Data use count: 0}}
+_do_far_call_to_de_a_2:           ;{{Addr=$0480 Code Calls/jump count: 1 Data use count: 0}}
         ld      b,$df             ;{{0480/b9da:06df}}  ROM select I/O port
         out     (c),a             ;{{0482/b9dc:ed79}}  select upper rom
 
@@ -241,13 +255,14 @@ _rst_3__low_far_call_17:          ;{{Addr=$0480 Code Calls/jump count: 1 Data us
 
 ;; rom select below 16 (max for firmware 1.1)?
         cp      $10               ;{{048c/b9e6:fe10}} 
-        jr      nc,_rst_3__low_far_call_38;{{048e/b9e8:300f}} 
+        jr      nc,dispatch_far_call_de_a;{{048e/b9e8:300f}} 
 
+;Get pointer to the ROMs data area (in IY)
 ;; 16-bit table at &b8da
         add     a,a               ;{{0490/b9ea:87}} 
-        add     a,$da             ;{{0491/b9eb:c6da}} 
+        add     a,Background_ROM_data_address_table and $ff;{{0491/b9eb:c6da}} 
         ld      l,a               ;{{0493/b9ed:6f}} 
-        adc     a,$b8             ;{{0494/b9ee:ceb8}} 
+        adc     a,Background_ROM_data_address_table >> 8;{{0494/b9ee:ceb8}} 
         sub     l                 ;{{0496/b9f0:95}} 
         ld      h,a               ;{{0497/b9f1:67}} 
 
@@ -259,12 +274,13 @@ _rst_3__low_far_call_17:          ;{{Addr=$0480 Code Calls/jump count: 1 Data us
         push    hl                ;{{049c/b9f6:e5}} 
         pop     iy                ;{{049d/b9f7:fde1}} 
 
-_rst_3__low_far_call_38:          ;{{Addr=$049f Code Calls/jump count: 1 Data use count: 0}}
+;;=dispatch far call de a
+dispatch_far_call_de_a:           ;{{Addr=$049f Code Calls/jump count: 1 Data use count: 0}}
         ld      b,$7f             ;{{049f/b9f9:067f}} 
         ld      a,c               ;{{04a1/b9fb:79}} 
         set     2,a               ;{{04a2/b9fc:cbd7}} 
         res     3,a               ;{{04a4/b9fe:cb9f}} 
-        call    copied_to_b9b0_in_RAM;{{04a6/ba00:cdb0b9}} 
+        call    set_rom_state_and_cleanup_and_JP_DE;{{04a6/ba00:cdb0b9}} 
         pop     iy                ;{{04a9/ba03:fde1}} 
         di                        ;{{04ab/ba05:f3}} 
         exx                       ;{{04ac/ba06:d9}} 
@@ -279,7 +295,7 @@ _rst_3__low_far_call_38:          ;{{Addr=$049f Code Calls/jump count: 1 Data us
         ld      (Upper_ROM_status_),a;{{04b5/ba0f:32d6b8}} 
         ld      b,$7f             ;{{04b8/ba12:067f}} 
         ld      a,e               ;{{04ba/ba14:7b}} 
-        jr      _rst_1__low_low_jump_24;{{04bb/ba15:1890}}  (-&70)
+        jr      cleanup_and_return_after_rom_call;{{04bb/ba15:1890}}  (-&70)
 
 ;;============================================================================================
 ;; LOW: KL SIDE PCHL
@@ -288,7 +304,7 @@ LOW_KL_SIDE_PCHL:                 ;{{Addr=$04bd Code Calls/jump count: 1 Data us
         push    hl                ;{{04be/ba18:e5}} 
         exx                       ;{{04bf/ba19:d9}} 
         pop     de                ;{{04c0/ba1a:d1}} 
-        jr      _rst_2__low_side_call_8;{{04c1/ba1b:1808}}  (+&08)
+        jr      do_JP_DE          ;{{04c1/ba1b:1808}}  (+&08)
 
 ;;============================================================================================
 ;; RST 2 - LOW: SIDE CALL
@@ -302,7 +318,9 @@ RST_2__LOW_SIDE_CALL:             ;{{Addr=$04c3 Code Calls/jump count: 1 Data us
         ld      d,(hl)            ;{{04c8/ba22:56}} 
         inc     hl                ;{{04c9/ba23:23}} 
         push    hl                ;{{04ca/ba24:e5}} 
-_rst_2__low_side_call_8:          ;{{Addr=$04cb Code Calls/jump count: 1 Data use count: 0}}
+
+;;=do JP DE
+do_JP_DE:                         ;{{Addr=$04cb Code Calls/jump count: 1 Data use count: 0}}
         ex      af,af'            ;{{04cb/ba25:08}} 
         ld      a,d               ;{{04cc/ba26:7a}} 
         set     7,d               ;{{04cd/ba27:cbfa}} 
@@ -312,7 +330,7 @@ _rst_2__low_side_call_8:          ;{{Addr=$04cb Code Calls/jump count: 1 Data us
         rlca                      ;{{04d4/ba2e:07}} 
         ld      hl,foreground_ROM_select_address_;{{04d5/ba2f:21d9b8}} 
         add     a,(hl)            ;{{04d8/ba32:86}} 
-        jr      _rst_3__low_far_call_17;{{04d9/ba33:18a5}}  (-&5b)
+        jr      _do_far_call_to_de_a_2;{{04d9/ba33:18a5}}  (-&5b)
 
 ;;============================================================================================
 ;; RST 5 - LOW: FIRM JUMP
@@ -325,11 +343,12 @@ rst_5__low_firm_jump_B:           ;{{Addr=$04db Code Calls/jump count: 1 Data us
         ld      d,(hl)            ;{{04e0/ba3a:56}} 
         res     2,c               ;{{04e1/ba3b:cb91}}  enable lower rom
         out     (c),c             ;{{04e3/ba3d:ed49}} 
-        ld      ($ba46),de        ;{{04e5/ba3f:ed5346ba}} 
+        ld      (do_low_firm_jump + 1),de;{{04e5/ba3f:ed5346ba}} Poke the address to call;WARNING: Code area used as literal
         exx                       ;{{04e9/ba43:d9}} 
         ei                        ;{{04ea/ba44:fb}} 
-_rst_5__low_firm_jump_b_11:       ;{{Addr=$04eb Code Calls/jump count: 1 Data use count: 0}}
-        call    _rst_5__low_firm_jump_b_11;{{04eb/ba45:cd45ba}} 
+;;+do low firm jump
+do_low_firm_jump:                 ;{{Addr=$04eb Code Calls/jump count: 1 Data use count: 1}}
+        call    do_low_firm_jump  ;{{04eb/ba45:cd45ba}} Self modified code - address is poked above
         di                        ;{{04ee/ba48:f3}} 
         exx                       ;{{04ef/ba49:d9}} 
         set     2,c               ;{{04f0/ba4a:cbd1}}  disable lower rom
@@ -345,7 +364,7 @@ HI_KL_L_ROM_ENABLE:               ;{{Addr=$04f7 Code Calls/jump count: 1 Data us
         exx                       ;{{04f8/ba52:d9}} 
         ld      a,c               ;{{04f9/ba53:79}}  current mode/rom state
         res     2,c               ;{{04fa/ba54:cb91}}  enable lower rom
-        jr      _hi_kl_u_rom_disable_4;{{04fc/ba56:1813}}  enable/disable rom common code
+        jr      enabledisable_rom_common_code;{{04fc/ba56:1813}}  enable/disable rom common code
 
 ;;============================================================================================
 ;; HI: KL L ROM DISABLE
@@ -354,7 +373,7 @@ HI_KL_L_ROM_DISABLE:              ;{{Addr=$04fe Code Calls/jump count: 1 Data us
         exx                       ;{{04ff/ba59:d9}} 
         ld      a,c               ;{{0500/ba5a:79}}  current mode/rom state
         set     2,c               ;{{0501/ba5b:cbd1}}  disable upper rom
-        jr      _hi_kl_u_rom_disable_4;{{0503/ba5d:180c}}  enable/disable rom common code
+        jr      enabledisable_rom_common_code;{{0503/ba5d:180c}}  enable/disable rom common code
 
 ;;============================================================================================
 ;; HI: KL U ROM ENABLE
@@ -363,7 +382,7 @@ HI_KL_U_ROM_ENABLE:               ;{{Addr=$0505 Code Calls/jump count: 3 Data us
         exx                       ;{{0506/ba60:d9}} 
         ld      a,c               ;{{0507/ba61:79}}  current mode/rom state
         res     3,c               ;{{0508/ba62:cb99}}  enable upper rom
-        jr      _hi_kl_u_rom_disable_4;{{050a/ba64:1805}}  enable/disable rom common code
+        jr      enabledisable_rom_common_code;{{050a/ba64:1805}}  enable/disable rom common code
 
 ;;============================================================================================
 ;; HI: KL U ROM DISABLE
@@ -373,9 +392,9 @@ HI_KL_U_ROM_DISABLE:              ;{{Addr=$050c Code Calls/jump count: 1 Data us
         ld      a,c               ;{{050e/ba68:79}}  current mode/rom state
         set     3,c               ;{{050f/ba69:cbd9}}  disable upper rom
 
-;;--------------------------------------------------------------------------------------------
+;;+--------------------------------------------------------------------------------------------
 ;; enable/disable rom common code
-_hi_kl_u_rom_disable_4:           ;{{Addr=$0511 Code Calls/jump count: 4 Data use count: 0}}
+enabledisable_rom_common_code:    ;{{Addr=$0511 Code Calls/jump count: 4 Data use count: 0}}
         out     (c),c             ;{{0511/ba6b:ed49}} 
         exx                       ;{{0513/ba6d:d9}} 
         ei                        ;{{0514/ba6e:fb}} 
@@ -390,7 +409,7 @@ HI_KL_L_ROM_RESTORE:              ;{{Addr=$0516 Code Calls/jump count: 2 Data us
         and     $0c               ;{{0519/ba73:e60c}}  %1100
         xor     c                 ;{{051b/ba75:a9}} 
         ld      c,a               ;{{051c/ba76:4f}} 
-        jr      _hi_kl_u_rom_disable_4;{{051d/ba77:18f2}}  enable/disable rom common code
+        jr      enabledisable_rom_common_code;{{051d/ba77:18f2}}  enable/disable rom common code
 
 ;;============================================================================================
 ;; HI: KL ROM SELECT
@@ -398,7 +417,7 @@ HI_KL_L_ROM_RESTORE:              ;{{Addr=$0516 Code Calls/jump count: 2 Data us
 
 HI_KL_ROM_SELECT:                 ;{{Addr=$051f Code Calls/jump count: 4 Data use count: 0}}
         call    HI_KL_U_ROM_ENABLE;{{051f/ba79:cd5fba}} ; HI: KL U ROM ENABLE
-        jr      _hi_kl_rom_deselect_4;{{0522/ba7c:180f}} ; common upper rom selection code      
+        jr      do_upper_rom_selection;{{0522/ba7c:180f}} ; common upper rom selection code      
 
 ;;============================================================================================
 ;; HI: KL PROBE ROM
@@ -417,9 +436,11 @@ HI_KL_ROM_DESELECT:               ;{{Addr=$052d Code Calls/jump count: 3 Data us
         call    HI_KL_L_ROM_RESTORE;{{052f/ba89:cd70ba}} ; HI: KL L ROM RESTORE
         pop     af                ;{{0532/ba8c:f1}} 
 
-;;--------------------------------------------------------------------------------------------
-;; common upper rom selection code
-_hi_kl_rom_deselect_4:            ;{{Addr=$0533 Code Calls/jump count: 1 Data use count: 0}}
+;;+--------------------------------------------------------------------------------------------
+;; do upper rom selection
+; In: C=new ROM select
+; Out: C=previous ROM select, B=value of A passed in (previous ROM state)
+do_upper_rom_selection:           ;{{Addr=$0533 Code Calls/jump count: 1 Data use count: 0}}
         push    hl                ;{{0533/ba8d:e5}} 
         di                        ;{{0534/ba8e:f3}} 
         ld      b,$df             ;{{0535/ba8f:06df}} ; ROM select I/O port
@@ -435,38 +456,42 @@ _hi_kl_rom_deselect_4:            ;{{Addr=$0533 Code Calls/jump count: 1 Data us
 
 ;;============================================================================================
 ;; HI: KL CURR SELECTION
+; Get current upper ROM selection
 HI_KL_CURR_SELECTION:             ;{{Addr=$0543 Code Calls/jump count: 1 Data use count: 0}}
         ld      a,(Upper_ROM_status_);{{0543/ba9d:3ad6b8}} 
         ret                       ;{{0546/baa0:c9}} 
 
 ;;============================================================================================
 ;; HI: KL LDIR
+; LDIR with ROMs disabled
 HI_KL_LDIR:                       ;{{Addr=$0547 Code Calls/jump count: 5 Data use count: 0}}
-        call    used_by_HI_KL_LDIR_and_HI_KL_LDDR;{{0547/baa1:cdadba}} ; disable upper/lower rom.. execute code below and then restore rom state
+        call    do_HI_KL_LDIR_and_HI_KL_LDDR;{{0547/baa1:cdadba}} ; disable upper/lower rom.. execute code below and then restore rom state
 
-;; called via &baad
+;; address of this code is popped from the stack and called by routine below
         ldir                      ;{{054a/baa4:edb0}} 
 ;; returns back to code after call in &baad   
         ret                       ;{{054c/baa6:c9}} 
 
 ;;============================================================================================
 ;; HI: KL LDDR
+; LDDR with ROMs disabled
 HI_KL_LDDR:                       ;{{Addr=$054d Code Calls/jump count: 2 Data use count: 0}}
-        call    used_by_HI_KL_LDIR_and_HI_KL_LDDR;{{054d/baa7:cdadba}} ; disable upper/lower rom.. execute code below and then restore rom state
+        call    do_HI_KL_LDIR_and_HI_KL_LDDR;{{054d/baa7:cdadba}} ; disable upper/lower rom.. execute code below and then restore rom state
 
-;; called via &baad
+;; address of this code is popped from the stack and called by routine below
         lddr                      ;{{0550/baaa:edb8}} 
 ;; returns back to code after call in &baad   
         ret                       ;{{0552/baac:c9}} 
+
 ;;============================================================================================
-;; used by HI: KL LDIR and HI: KL LDDR
-;; copied to &baad in RAM
+;; do HI: KL LDIR and HI: KL LDDR
+;; uses return address on stack as address of code to callback
 ;;
 ;; - disables upper and lower rom
 ;; - continues execution from function that called it allowing it to return back
 ;; - restores upper and lower rom state
 
-used_by_HI_KL_LDIR_and_HI_KL_LDDR:;{{Addr=$0553 Code Calls/jump count: 2 Data use count: 0}}
+do_HI_KL_LDIR_and_HI_KL_LDDR:     ;{{Addr=$0553 Code Calls/jump count: 2 Data use count: 0}}
         di                        ;{{0553/baad:f3}} 
         exx                       ;{{0554/baae:d9}} 
         pop     hl                ;{{0555/baaf:e1}}  return address
@@ -475,8 +500,8 @@ used_by_HI_KL_LDIR_and_HI_KL_LDDR:;{{Addr=$0553 Code Calls/jump count: 2 Data us
         set     3,c               ;{{0559/bab3:cbd9}}  disable upper rom
         out     (c),c             ;{{055b/bab5:ed49}}  set rom state
 
-;; jump to function on the stack, allow it to return back here
-        call    copied_to_bac2_into_RAM;{{055d/bab7:cdc2ba}}  jump to function in HL
+;; call (HL): executes subroutine at address in HL
+        call    do_LDIR_LDDR_as_callback;{{055d/bab7:cdc2ba}}  jump to function in HL
 
 
         di                        ;{{0560/baba:f3}} 
@@ -488,8 +513,10 @@ used_by_HI_KL_LDIR_and_HI_KL_LDDR:;{{Addr=$0553 Code Calls/jump count: 2 Data us
         ret                       ;{{0567/bac1:c9}} 
 
 ;;============================================================================================
-;; copied to &bac2 into RAM
-copied_to_bac2_into_RAM:          ;{{Addr=$0568 Code Calls/jump count: 1 Data use count: 0}}
+;; do LDIR LDDR as callback
+; HL = address to return to (execute)
+; (routine called will return to our caller)
+do_LDIR_LDDR_as_callback:         ;{{Addr=$0568 Code Calls/jump count: 1 Data use count: 0}}
         push    hl                ;{{0568/bac2:e5}} 
         exx                       ;{{0569/bac3:d9}} 
         ei                        ;{{056a/bac4:fb}} 
@@ -497,7 +524,7 @@ copied_to_bac2_into_RAM:          ;{{Addr=$0568 Code Calls/jump count: 1 Data us
 
 ;;============================================================================================
 ;; RST 4 - LOW: RAM LAM
-;; HL = address to read
+;; LD A,(HL) with ROMs disabled
 RST_4__LOW_RAM_LAM:               ;{{Addr=$056c Code Calls/jump count: 1 Data use count: 0}}
         di                        ;{{056c/bac6:f3}} 
         exx                       ;{{056d/bac7:d9}} 
@@ -515,7 +542,6 @@ RST_4__LOW_RAM_LAM:               ;{{Addr=$056c Code Calls/jump count: 1 Data us
 
 ;;============================================================================================
 ;; read byte from address pointed to IX with roms disabled
-;;
 ;; (used by cassette functions to read/write to RAM)
 ;;
 ;; IX = address of byte to read

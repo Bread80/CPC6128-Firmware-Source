@@ -421,7 +421,8 @@ Used by Kernel Pack
 &B8D6	&B1A8	1	Upper ROM status (eg select number)
 &B8D7	&B1A9	2	entry point of foreground ROM in use (eg &C006 for BASIC ROM)
 &B8D9	&B1AB	1	foreground ROM select address (0 for the BASIC ROM)
-&B8DA		16*2	ROM entry IY value (ie the address table) - the 6128 has ROMs numbered from 0 to 15:
+&B8DA		16*2	Background ROM data address table. Value is as returned by ROM init routine (in DE), and passed 
+                    back in IY when the ROM is called (via an RSX) - the 6128 has ROMs numbered from 0 to 15:
 &B1AC	7*2	ROM entry IY value (ie the address table)
 &B8DA		2	ROM 0 IY (not for the 464)
 &B8DC	&B1AC	2	ROM 1 IY

@@ -837,28 +837,31 @@ KL_INIT_BACK:                     ;{{Addr=$0330 Code Calls/jump count: 1 Data us
         ret     nc                ;{{0338:d0}} 
 
         call    HI_KL_ROM_SELECT  ;{{0339:cd79ba}} ; HI: KL ROM SELECT
-        ld      a,($c000)         ;{{033c:3a00c0}} 
+        ld      a,($c000)         ;{{033c:3a00c0}} get ROM class. 1=background ROM
+                                  ;NOTE: if no ROM at this address then we'll get ROM 0 (BASIC)
+                                  ;which isn't a background ROM
         and     $03               ;{{033f:e603}} 
         dec     a                 ;{{0341:3d}} 
-        jr      nz,_kl_init_back_32;{{0342:2022}}  (+&22)
+        jr      nz,_kl_init_back_32;{{0342:2022}}  (+&22) i=Ignore if not background ROM
         push    bc                ;{{0344:c5}} 
         scf                       ;{{0345:37}} 
-        call    $c006             ;{{0346:cd06c0}} 
-        jr      nc,_kl_init_back_31;{{0349:301a}}  (+&1a)
-        push    de                ;{{034b:d5}} 
+        call    $c006             ;{{0346:cd06c0}} Call ROM init routine (standard address)
+        jr      nc,_kl_init_back_31;{{0349:301a}}  (+&1a) ROM didn't request a data area? Or has no RSXs?
+
+        push    de                ;{{034b:d5}} DE = address of ROMs data area (adjusted by ROM init routine)
         inc     hl                ;{{034c:23}} 
         ex      de,hl             ;{{034d:eb}} 
-        ld      hl,ROM_entry_IY_value_;{{034e:21dab8}} 
-        ld      bc,(Upper_ROM_status_);{{0351:ed4bd6b8}} 
+        ld      hl,Background_ROM_data_address_table;{{034e:21dab8}} 
+        ld      bc,(Upper_ROM_status_);{{0351:ed4bd6b8}} C=ROM number
         ld      b,$00             ;{{0355:0600}} 
-        add     hl,bc             ;{{0357:09}} 
+        add     hl,bc             ;{{0357:09}} Calc address in ROM table
         add     hl,bc             ;{{0358:09}} 
-        ld      (hl),e            ;{{0359:73}} 
+        ld      (hl),e            ;{{0359:73}} Store DE into table entry
         inc     hl                ;{{035a:23}} 
         ld      (hl),d            ;{{035b:72}} 
         ld      hl,$fffc          ;{{035c:21fcff}} 
-        add     hl,de             ;{{035f:19}} 
-        call    KL_LOG_EXT        ;{{0360:cda002}}  KL LOG EXT
+        add     hl,de             ;{{035f:19}} DE=DE-4 - reserve bytes for RSX linked list??
+        call    KL_LOG_EXT        ;{{0360:cda002}}  KL LOG EXT - log the RSXs in the ROM
         dec     hl                ;{{0363:2b}} 
         pop     de                ;{{0364:d1}} 
 _kl_init_back_31:                 ;{{Addr=$0365 Code Calls/jump count: 1 Data use count: 0}}
@@ -933,6 +936,7 @@ _delete_event_from_list_10:       ;{{Addr=$0395 Code Calls/jump count: 1 Data us
 
 ;;====================================================================
 ;; KL BANK SWITCH 
+; Change RAM bank setting
 ;;
 ;; A = new configuration (0-31)
 ;;

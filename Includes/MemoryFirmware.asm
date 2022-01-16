@@ -342,8 +342,8 @@ RAM_bank_number      EQU $b8d5
 Upper_ROM_status_    EQU $b8d6
 entry_point_of_foreground_ROM_in_use_ EQU $b8d7
 foreground_ROM_select_address_ EQU $b8d9
-ROM_entry_IY_value_  EQU $b8da
-rom_entry_iy_value__B EQU $b1ac
+Background_ROM_data_address_table EQU $b8da
+ROM_entry_IY_value_  EQU $b1ac
 ROM_0_IY_            EQU $b8da
 ROM_1_IY             EQU $b8dc
 ROM_2_IY             EQU $b8de

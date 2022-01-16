@@ -104,8 +104,6 @@
 ;;----------------------------------------------------------------------------------------
 
 ;This is a bit more the of the RST 6 code (see above)
-;PS I'm not sure why they didn't put the SET opcode at &002b and jump straight 
-;there from &0036. Technical reason or oversight?
 0040 cbd1      set     2,c
 0042 18e8      jr      &002c            ; (-&18)
 
@@ -883,28 +881,31 @@ defw &b8d7
 0338 d0        ret     nc
 
 0339 cd79ba    call    &ba79		;; HI: KL ROM SELECT
-033c 3a00c0    ld      a,(&c000)
+033c 3a00c0    ld      a,(&c000)        ;get ROM class. 1=background ROM
+                                        ;NOTE: if no ROM at this address then we'll get ROM 0 (BASIC)
+                                        ;which isn't a background ROM
 033f e603      and     &03
 0341 3d        dec     a
-0342 2022      jr      nz,&0366         ; (+&22)
+0342 2022      jr      nz,&0366         ; (+&22) i=Ignore if not background ROM
 0344 c5        push    bc
 0345 37        scf     
-0346 cd06c0    call    &c006
-0349 301a      jr      nc,&0365         ; (+&1a)
-034b d5        push    de
+0346 cd06c0    call    &c006            ;Call ROM init routine (standard address)
+0349 301a      jr      nc,&0365         ; (+&1a) ROM didn't request a data area? Or has no RSXs?
+
+034b d5        push    de               ;DE = address of ROMs data area (adjusted by ROM init routine)
 034c 23        inc     hl
 034d eb        ex      de,hl
 034e 21dab8    ld      hl,&b8da
-0351 ed4bd6b8  ld      bc,(&b8d6)
+0351 ed4bd6b8  ld      bc,(&b8d6)       ;C=ROM number
 0355 0600      ld      b,&00
-0357 09        add     hl,bc
+0357 09        add     hl,bc            ;Calc address in ROM table
 0358 09        add     hl,bc
-0359 73        ld      (hl),e
+0359 73        ld      (hl),e           ;Store DE into table entry
 035a 23        inc     hl
 035b 72        ld      (hl),d
-035c 21fcff    ld      hl,&fffc
-035f 19        add     hl,de
-0360 cda002    call    &02a0			; KL LOG EXT
+035c 21fcff    ld      hl,&fffc         
+035f 19        add     hl,de            ;DE=DE-4 - reserve bytes for RSX linked list??
+0360 cda002    call    &02a0			; KL LOG EXT - log the RSXs in the ROM
 0363 2b        dec     hl
 0364 d1        pop     de
 0365 c1        pop     bc
@@ -971,6 +972,7 @@ defw &b8d7
 
 ;;====================================================================
 ;; KL BANK SWITCH 
+; Change RAM bank setting
 ;;
 ;; A = new configuration (0-31)
 ;;
@@ -1119,26 +1121,31 @@ org &b900,$
 0435 56        ld      d,(hl)
 
 ;;--------------------------------------------------------------------------------------------
+;;= low jp de
 0436 08        ex      af,af'
 0437 7a        ld      a,d
-0438 cbba      res     7,d
+0438 cbba      res     7,d              ;Mask to a lower ROM address
 043a cbb2      res     6,d
-043c 07        rlca    
+043c 07        rlca                     ;rotate ROM code into bits 1,0
 043d 07        rlca    
 
 ;;---------------------------------------------------------------------------------------------
-043e 07        rlca    
+;;= low jp de with rom state in a
+043e 07        rlca                     ;rotate ROM code into bits 3,2
 043f 07        rlca    
 0440 a9        xor     c
 0441 e60c      and     &0c
 0443 a9        xor     c
 0444 c5        push    bc
-0445 cdb0b9    call    &b9b0
-0448 f3        di      
+0445 cdb0b9    call    &b9b0            ;ROM select and CALL address in DE
+
+0448 f3        di                       ;Now do cleanup and return to caller
 0449 d9        exx     
 044a 08        ex      af,af'
 044b 79        ld      a,c
 044c c1        pop     bc
+
+;;=cleanup and return after rom call
 044d e603      and     &03
 044f cb89      res     1,c
 0451 cb81      res     0,c
@@ -1146,9 +1153,11 @@ org &b900,$
 0454 1801      jr      &0457            ; (+&01)
 
 ;;============================================================================================
-;; copied to &b9b0 in RAM
-
+;; set rom state and cleanup and JP DE
+; restores ROM state, registers etc and jumps to address in DE 
+; (and then returns to caller)
 0456 d5        push    de
+;;=set rom state and cleanup
 0457 4f        ld      c,a
 0458 ed49      out     (c),c
 045a b7        or      a
@@ -1159,6 +1168,7 @@ org &b900,$
 
 ;;============================================================================================
 ;; LOW: KL FAR PCHL
+; call to address in HL, ROM select in C
 045f f3        di      
 0460 08        ex      af,af'
 0461 79        ld      a,c
@@ -1169,6 +1179,7 @@ org &b900,$
 
 ;;============================================================================================
 ;; LOW: KL FAR ICALL
+; call to 3-byte indirect address. HL=pointer to address data (address, rom select)
 0467 f3        di      
 0468 e5        push    hl
 0469 d9        exx     
@@ -1177,31 +1188,36 @@ org &b900,$
 
 ;;============================================================================================
 ;; RST 3 - LOW: FAR CALL
+;; call to 3-byte inline address (address, rom select)
 ;;
 ;; far call limits rom select to 251. So firmware can call functions in ROMs up to 251.
 ;; If you want to access ROMs above this use KL ROM SELECT.
 ;;
 046d f3        di      
 046e d9        exx     
-046f e1        pop     hl
-0470 5e        ld      e,(hl)
+046f e1        pop     hl               ;Get return address
+0470 5e        ld      e,(hl)           ;DE=address of far pointer
 0471 23        inc     hl
 0472 56        ld      d,(hl)
 0473 23        inc     hl
-0474 e5        push    hl
-0475 eb        ex      de,hl
-0476 5e        ld      e,(hl)
+0474 e5        push    hl               ;Restore new return address
+0475 eb        ex      de,hl            ;HL=address to far pointer
+
+;;= do indirect far call to athl
+0476 5e        ld      e,(hl)           ;DE=address to call
 0477 23        inc     hl
 0478 56        ld      d,(hl)
 0479 23        inc     hl
 047a 08        ex      af,af'
-047b 7e        ld      a,(hl)
+047b 7e        ld      a,(hl)           ;ROM select state
+
+;;= do far call to de a
 ;; &fc - no change to rom select, enable upper and lower roms
 ;; &fd - no change to rom select, enable upper disable lower
 ;; &fe - no change to rom select, disable upper and enable lower
 ;; &ff - no change to rom select, disable upper and lower roms
 047c fefc      cp      &fc
-047e 30be      jr      nc,&043e 
+047e 30be      jr      nc,&043e
 
 ;; allow rom select to change
 0480 06df      ld      b,&df			; ROM select I/O port
@@ -1217,11 +1233,12 @@ org &b900,$
 048c fe10      cp      &10         
 048e 300f      jr      nc,&049f   
 
+;Get pointer to the ROMs data area (in IY)
 ;; 16-bit table at &b8da
-0490 87        add     a,a
-0491 c6da      add     a,&da
+0490 87        add     a,a              
+0491 c6da      add     a,&b8da and $ff
 0493 6f        ld      l,a
-0494 ceb8      adc     a,&b8
+0494 ceb8      adc     a,&b8da >> 8
 0496 95        sub     l
 0497 67        ld      h,a
 
@@ -1233,6 +1250,7 @@ org &b900,$
 049c e5        push    hl
 049d fde1      pop     iy
 
+;;=dispatch far call de a
 049f 067f      ld      b,&7f
 04a1 79        ld      a,c
 04a2 cbd7      set     2,a          
@@ -1273,6 +1291,8 @@ org &b900,$
 04c8 56        ld      d,(hl)
 04c9 23        inc     hl
 04ca e5        push    hl
+
+;;=do JP DE
 04cb 08        ex      af,af'
 04cc 7a        ld      a,d
 04cd cbfa      set     7,d
@@ -1294,10 +1314,11 @@ org &b900,$
 04e0 56        ld      d,(hl)
 04e1 cb91      res     2,c				; enable lower rom
 04e3 ed49      out     (c),c
-04e5 ed5346ba  ld      (&ba46),de
+04e5 ed5346ba  ld      (&ba45 + 1),de   ;Poke the address to call
 04e9 d9        exx     
-04ea fb        ei      
-04eb cd45ba    call    &ba45
+04ea fb        ei    
+;;+do low firm jump
+04eb cd45ba    call    &ba45            ;Self modified code - address is poked above
 04ee f3        di      
 04ef d9        exx     
 04f0 cbd1      set     2,c				; disable lower rom
@@ -1337,7 +1358,7 @@ org &b900,$
 050e 79        ld      a,c        ; current mode/rom state
 050f cbd9      set     3,c				; disable upper rom
 
-;;--------------------------------------------------------------------------------------------
+;;+--------------------------------------------------------------------------------------------
 ;; enable/disable rom common code
 0511 ed49      out     (c),c
 0513 d9        exx     
@@ -1376,8 +1397,10 @@ org &b900,$
 052f cd70ba    call    &ba70			;; HI: KL L ROM RESTORE
 0532 f1        pop     af
 
-;;--------------------------------------------------------------------------------------------
-;; common upper rom selection code
+;;+--------------------------------------------------------------------------------------------
+;; do upper rom selection
+; In: C=new ROM select
+; Out: C=previous ROM select, B=value of A passed in (previous ROM state)
 0533 e5        push    hl
 0534 f3        di      
 0535 06df      ld      b,&df			;; ROM select I/O port
@@ -1393,29 +1416,33 @@ org &b900,$
 
 ;;============================================================================================
 ;; HI: KL CURR SELECTION
+; Get current upper ROM selection
 0543 3ad6b8    ld      a,(&b8d6)
 0546 c9        ret     
 
 ;;============================================================================================
 ;; HI: KL LDIR
+; LDIR with ROMs disabled
 0547 cdadba    call    &baad			;; disable upper/lower rom.. execute code below and then restore rom state
 
-;; called via &baad
+;; address of this code is popped from the stack and called by routine below
 054a edb0      ldir    
 ;; returns back to code after call in &baad   
 054c c9        ret     
 
 ;;============================================================================================
 ;; HI: KL LDDR
+; LDDR with ROMs disabled
 054d cdadba    call    &baad			;; disable upper/lower rom.. execute code below and then restore rom state
 
-;; called via &baad
+;; address of this code is popped from the stack and called by routine below
 0550 edb8      lddr 
 ;; returns back to code after call in &baad   
 0552 c9        ret     
+
 ;;============================================================================================
-;; used by HI: KL LDIR and HI: KL LDDR
-;; copied to &baad in RAM
+;; do HI: KL LDIR and HI: KL LDDR
+;; uses return address on stack as address of code to callback
 ;;
 ;; - disables upper and lower rom
 ;; - continues execution from function that called it allowing it to return back
@@ -1429,7 +1456,7 @@ org &b900,$
 0559 cbd9      set     3,c					; disable upper rom
 055b ed49      out     (c),c				; set rom state
 
-;; jump to function on the stack, allow it to return back here
+;; call (HL): executes subroutine at address in HL
 055d cdc2ba    call    &bac2				; jump to function in HL
 
 
@@ -1442,7 +1469,9 @@ org &b900,$
 0567 c9        ret     
 
 ;;============================================================================================
-;; copied to &bac2 into RAM
+;; do LDIR LDDR as callback
+; HL = address to return to (execute)
+; (routine called will return to our caller)
 0568 e5        push    hl
 0569 d9        exx     
 056a fb        ei      
@@ -1450,7 +1479,7 @@ org &b900,$
 
 ;;============================================================================================
 ;; RST 4 - LOW: RAM LAM
-;; HL = address to read
+;; LD A,(HL) with ROMs disabled
 056c f3        di      
 056d d9        exx     
 056e 59        ld      e,c				;; E = current rom configuration
@@ -1467,7 +1496,6 @@ org &b900,$
 
 ;;============================================================================================
 ;; read byte from address pointed to IX with roms disabled
-;;
 ;; (used by cassette functions to read/write to RAM)
 ;;
 ;; IX = address of byte to read

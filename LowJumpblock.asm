@@ -88,8 +88,6 @@ LOW_EXT_INTERRUPT:                ;{{Addr=$003b Code Calls/jump count: 1 Data us
 ;;----------------------------------------------------------------------------------------
 
 ;This is a bit more the of the RST 6 code (see above)
-;PS I'm not sure why they didn't put the SET opcode at &002b and jump straight 
-;there from &0036. Technical reason or oversight?
 END_OF_LOW_KERNEL_JUMPBLOCK:      ;{{Addr=$0040 Code Calls/jump count: 1 Data use count: 2}}
         set     2,c               ;{{0040:cbd1}} 
         jr      do_rst_6          ;{{0042:18e8}}  (-&18)
