@@ -37,6 +37,13 @@ If you want to add extra functionality you'll need some space for your code. The
 * If desperate you could free up a few bytes by removing the regional settings, 60Hz screen options, or even removing the sign on strings - you'll find all of those near the start of Machine.asm
 * Finally, you could put your new code (or move existing code) into a separate ROM. I'd suggest the floating point routines are a good candidate for this as they're self contained and only called from BASIC. If doing so you'll need to include some startup code to install the jumpblocks, and you'll need to rewrite the jumpblock calls to use the appropriate RST code. (See below for pointers on how that stuff works).
 
+How to build this code
+---
+
+You'll want to compile rasm, from https://github.com/EdouardBERGE/rasm .
+
+Then you can use "rasm Main.asm" to generate the ROM image.
+
 A Primer on the Amstrad Firmware
 ---
 If you're not familiar with the Amstrad CPC firmware then this quick primer should get you started.
