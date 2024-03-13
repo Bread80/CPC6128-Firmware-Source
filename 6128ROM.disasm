@@ -9,8 +9,9 @@
 ;and still function correctly (excepting code which must run at a specific
 ;address).
 
-;Based on the riginal commented disassembly at:
+;Based on the original commented disassembly at:
 ; http://cpctech.cpc-live.com/docs/os.asm
+;which I understand to have been done by @arnoldemu and @SyX
 
 ;There are two versions of this file: a single monolithic version and
 ;one which has been broken out into separate 'includes'. The latter may
@@ -71,7 +72,8 @@
 ;;+----------------------------------------------------------------
 ;; RST 5 - LOW: FIRM JUMP
 0028 c335ba    jp      &ba35			; RST 5 - LOW: FIRM JUMP
-002b 00        nop
+002b 00        nop                      ;When RST 6 is executed the RAM at this address is patched with 
+                                        ;current ROM select state (at the point the RST 6 was executed).
 ;;+----------------------------------------------------------------     
 ;;do rst 6
 002c ed49      out     (c),c
@@ -5878,9 +5880,10 @@ defw &bddc
 1b66 67        ld      h,a
 1b67 6f        ld      l,a
 1b68 2231b6    ld      (&b631),hl
-1b6b 01b0ff    ld      bc,&ffb0
-1b6e 11d6b5    ld      de,&b5d6
-1b71 2192b6    ld      hl,&b692
+                                        ;Initialise key table pointers
+1b6b 01b0ff    ld      bc,&ffb0         ;-$50 - size of each table
+1b6e 11d6b5    ld      de,&b586 + &50   ;&b5d6 - counting backwards
+1b71 2192b6    ld      hl,&b691 + 1     ;start at end of list and work backwords
 1b74 3e04      ld      a,&04
 1b76 eb        ex      de,hl
 1b77 09        add     hl,bc
@@ -6543,7 +6546,7 @@ defb &01,&02,&04,&08,&10,&20,&40,&80
 1e85 c9        ret     
 
 ;;===========================================================================
-;; km unknown function 1
+;; push into key buffer
 1e86 2186b6    ld      hl,&b686
 1e89 b7        or      a
 1e8a 35        dec     (hl)
@@ -6560,7 +6563,7 @@ defb &01,&02,&04,&08,&10,&20,&40,&80
 1e9c c9        ret     
 
 ;;===========================================================================
-;; km unknown function 2
+;; pop from key buffer
 1e9d 2188b6    ld      hl,&b688
 1ea0 b7        or      a
 1ea1 35        dec     (hl)
@@ -6577,19 +6580,24 @@ defb &01,&02,&04,&08,&10,&20,&40,&80
 1eb3 c9        ret     
 
 ;;-----------------------------------------------------------
-1eb4 23        inc     hl
-1eb5 34        inc     (hl)
+;;= get next key buffer item addr
+; Advance key buffer index to next entry, returns address of that entry.
+; In: HL=address /before/ index data. Out: HL=pointer to entry
+1eb4 23        inc     hl               ;Index is next byte
+1eb5 34        inc     (hl)             ;Inc index
 1eb6 7e        ld      a,(hl)
-1eb7 fe14      cp      &14
+1eb7 fe14      cp      &14              ;Max key buffer index
 1eb9 2002      jr      nz,&1ebd         ; (+&02)
 
-1ebb af        xor     a
+1ebb af        xor     a                ;Wrap if end of buffer
 1ebc 77        ld      (hl),a
 
-1ebd 87        add     a,a
-1ebe c65e      add     a,&5e
+;;= get index into key buffer
+; In: A=index Out HL=address
+1ebd 87        add     a,a              ;Multiply by 2 two (two bytes per entry)
+1ebe c65e      add     a,&b65e and &ff    ;Add to address of key buffer
 1ec0 6f        ld      l,a
-1ec1 26b6      ld      h,&b6
+1ec1 26b6      ld      h,&b65e >> 8     ;NOTE: We'll get errors if the buffer spans 256-byte boundary
 1ec3 c9        ret     
 
 ;;===========================================================================
@@ -6645,8 +6653,10 @@ defb &01,&02,&04,&08,&10,&20,&40,&80
 1eee c9        ret     
 
 ;;+------------------------------------------------------
-;; keyboard translation table
+;; keyboard translation tables
+;Translates keyboard row/columns to key values
 
+;Normal key table
 1eef defb &f0,&f3,&f1,&89,&86,&83,&8b,&8a
 1ef7 defb &f2,&e0,&87,&88,&85,&81,&82,&80       
 1eff defb &10,&5b,&0d,&5d,&84,&ff,&5c,&ff      
@@ -6657,6 +6667,8 @@ defb &01,&02,&04,&08,&10,&20,&40,&80
 1f27 defb &34,&33,&65,&77,&73,&64,&63,&78       
 1f2f defb &31,&32,&fc,&71,&09,&61,&fd,&7a    
 1f37 defb &0b,&0a,&08,&09,&58,&5a,&ff,&7f        
+
+;Shifted key table
 1f3f defb &f4,&f7,&f5,&89,&86,&83,&8b,&8a      
 1f47 defb &f6,&e0,&87,&88,&85,&81,&82,&80        
 1f4f defb &10,&7b,&0d,&7d,&84,&ff,&60,&ff        
@@ -6667,6 +6679,8 @@ defb &01,&02,&04,&08,&10,&20,&40,&80
 1f77 defb &24,&23,&45,&57,&53,&44,&43,&58
 1f7f defb &21,&22,&fc,&51,&09,&41,&fd,&5a  
 1f87 defb &0b,&0a,&08,&09,&58,&5a,&ff,&7f       
+
+;Control key table
 1f8f defb &f8,&fb,&f9,&89,&86,&83,&8c,&8a      
 1f97 defb &fa,&e0,&87,&88,&85,&81,&82,&80       
 1f9f defb &10,&1b,&0d,&1d,&84,&ff,&1c,&ff      
@@ -6677,6 +6691,11 @@ defb &01,&02,&04,&08,&10,&20,&40,&80
 1fc7 defb &ff,&ff,&05,&17,&13,&04,&03,&18
 1fcf defb &ff,&7e,&fc,&11,&e1,&01,&fe,&1a   
 1fd7 defb &ff,&ff,&ff,&ff,&ff,&ff,&ff,&7f
+
+;Key repeats table
+;(each byte/bit applies to all three key tables): 
+;1 byte is used per line of the tables; 
+;b0 to b7 give the columns (left to right), repeat if set
 1fdf defb &07,&03,&4b,&ff,&ff,&ff,&ff,&ff
 1fe7 defb &ab,&8f
 

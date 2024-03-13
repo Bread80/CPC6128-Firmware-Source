@@ -10,9 +10,10 @@ KM_INITIALISE:                    ;{{Addr=$1b5c Code Calls/jump count: 1 Data us
         ld      h,a               ;{{1b66:67}} 
         ld      l,a               ;{{1b67:6f}} 
         ld      (Shift_lock_flag_),hl;{{1b68:2231b6}} 
-        ld      bc,$ffb0          ;{{1b6b:01b0ff}} 
-        ld      de,$b5d6          ;{{1b6e:11d6b5}} 
-        ld      hl,RAM_b692       ;{{1b71:2192b6}} 
+                                  ;Initialise key table pointers
+        ld      bc,$ffb0          ;{{1b6b:01b0ff}} -$50 - size of each table
+        ld      de,KB_repeats_table_ + $50;{{1b6e:11d6b5}} &b5d6 - counting backwards
+        ld      hl,address_of_the_KB_repeats_table + 1;{{1b71:2192b6}} start at end of list and work backwords
         ld      a,$04             ;{{1b74:3e04}} 
 _km_initialise_11:                ;{{Addr=$1b76 Code Calls/jump count: 1 Data use count: 0}}
         ex      de,hl             ;{{1b76:eb}} 
@@ -27,7 +28,7 @@ _km_initialise_11:                ;{{Addr=$1b76 Code Calls/jump count: 1 Data us
 
 ;;-------------------------------------------
 ;; copy keyboard translation table
-        ld      hl,keyboard_translation_table;{{1b80:21ef1e}} 
+        ld      hl,keyboard_translation_tables;{{1b80:21ef1e}} 
         ld      bc,$00fa          ;{{1b83:01fa00}} ##LIT##;WARNING: Code area used as literal
         ldir                      ;{{1b86:edb0}} 
 
@@ -82,14 +83,14 @@ KM_WAIT_CHAR:                     ;{{Addr=$1bbf Code Calls/jump count: 3 Data us
 
 KM_READ_CHAR:                     ;{{Addr=$1bc5 Code Calls/jump count: 2 Data use count: 1}}
         push    hl                ;{{1bc5:e5}} 
-        ld      hl,RAM_b62a       ;{{1bc6:212ab6}}  returned char
+        ld      hl,Returned_char  ;{{1bc6:212ab6}}  returned char
         ld      a,(hl)            ;{{1bc9:7e}}  get char
         ld      (hl),$ff          ;{{1bca:36ff}}  reset state
         cp      (hl)              ;{{1bcc:be}}  was a char returned?
         jr      c,_km_read_char_27;{{1bcd:3827}}  a key was put back into buffer, return without expanding it
 
 ;; are we expanding?
-        ld      hl,(Byte_after_end_of_DEF_KEY_area);{{1bcf:2a28b6}} 
+        ld      hl,(Key_expansion_data_1);{{1bcf:2a28b6}} 
         ld      a,h               ;{{1bd2:7c}} 
         or      a                 ;{{1bd3:b7}} 
         jr      nz,_km_read_char_19;{{1bd4:2011}}  continue expansion
@@ -117,7 +118,7 @@ _km_read_char_19:                 ;{{Addr=$1be7 Code Calls/jump count: 1 Data us
         ld      h,$00             ;{{1bed:2600}} 
 _km_read_char_23:                 ;{{Addr=$1bef Code Calls/jump count: 1 Data use count: 0}}
         inc     l                 ;{{1bef:2c}} 
-        ld      (Byte_after_end_of_DEF_KEY_area),hl;{{1bf0:2228b6}} 
+        ld      (Key_expansion_data_1),hl;{{1bf0:2228b6}} 
         pop     de                ;{{1bf3:d1}} 
         jr      nc,_km_read_char_10;{{1bf4:30e0}} 
 _km_read_char_27:                 ;{{Addr=$1bf6 Code Calls/jump count: 4 Data use count: 0}}
@@ -133,7 +134,7 @@ clear_returned_key:               ;{{Addr=$1bf8 Code Calls/jump count: 1 Data us
 ;; KM CHAR RETURN
 
 KM_CHAR_RETURN:                   ;{{Addr=$1bfa Code Calls/jump count: 0 Data use count: 1}}
-        ld      (RAM_b62a),a      ;{{1bfa:322ab6}} 
+        ld      (Returned_char),a ;{{1bfa:322ab6}} 
         ret                       ;{{1bfd:c9}} 
 
 ;;===========================================================================
@@ -188,7 +189,7 @@ _km_exp_buffer_28:                ;{{Addr=$1c31 Code Calls/jump count: 1 Data us
         inc     hl                ;{{1c32:23}} 
         djnz    _km_exp_buffer_28 ;{{1c33:10fc}}  (-&04)
         ld      (RAM_b62f),hl     ;{{1c35:222fb6}} 
-        ld      (RAM_b629),a      ;{{1c38:3229b6}} 
+        ld      (Key_expansion_data_2),a;{{1c38:3229b6}} 
         ret                       ;{{1c3b:c9}} 
 
 ;;+-------------------
@@ -229,7 +230,7 @@ _km_set_expand_15:                ;{{Addr=$1c59 Code Calls/jump count: 1 Data us
         inc     hl                ;{{1c5c:23}} 
         dec     c                 ;{{1c5d:0d}} 
         jr      nz,_km_set_expand_15;{{1c5e:20f9}}  (-&07)
-        ld      hl,RAM_b629       ;{{1c60:2129b6}} 
+        ld      hl,Key_expansion_data_2;{{1c60:2129b6}} 
         ld      a,b               ;{{1c63:78}} 
         xor     (hl)              ;{{1c64:ae}} 
         jr      nz,_km_set_expand_26;{{1c65:2001}}  (+&01)
@@ -359,7 +360,7 @@ KM_READ_KEY:                      ;{{Addr=$1ce1 Code Calls/jump count: 2 Data us
         push    hl                ;{{1ce1:e5}} 
         push    bc                ;{{1ce2:c5}} 
 _km_read_key_2:                   ;{{Addr=$1ce3 Code Calls/jump count: 2 Data use count: 0}}
-        call    km_unknown_function_2;{{1ce3:cd9d1e}} 
+        call    pop_from_key_buffer;{{1ce3:cd9d1e}} 
         jr      nc,_km_read_key_37;{{1ce6:303a}}  (+&3a)
         ld      a,c               ;{{1ce8:79}} 
         cp      $ef               ;{{1ce9:feef}} 
@@ -502,7 +503,7 @@ _ind_km_scan_keys_12:             ;{{Addr=$1d5c Code Calls/jump count: 1 Data us
 
         ld      hl,RAM_b653       ;{{1d92:2153b6}} 
         inc     (hl)              ;{{1d95:34}} 
-        ld      a,(RAM_b68a)      ;{{1d96:3a8ab6}} 
+        ld      a,(number_of_keys_in_keys_buffer);{{1d96:3a8ab6}} 
         or      a                 ;{{1d99:b7}} 
         ret     nz                ;{{1d9a:c0}} 
 
@@ -513,7 +514,7 @@ _ind_km_scan_keys_12:             ;{{Addr=$1d5c Code Calls/jump count: 1 Data us
 
 _ind_km_scan_keys_57:             ;{{Addr=$1da1 Code Calls/jump count: 1 Data use count: 0}}
         ld      (RAM_b653),a      ;{{1da1:3253b6}} 
-        call    km_unknown_function_1;{{1da4:cd861e}} 
+        call    push_into_key_buffer;{{1da4:cd861e}} 
         ld      a,c               ;{{1da7:79}} 
         and     $0f               ;{{1da8:e60f}} 
         ld      l,a               ;{{1daa:6f}} 
@@ -642,7 +643,7 @@ KM_BREAK_EVENT:                   ;{{Addr=$1e19 Code Calls/jump count: 2 Data us
         inc     hl                ;{{1e23:23}} 
         call    KL_EVENT          ;{{1e24:cde201}}  KL EVENT
         ld      c,$ef             ;{{1e27:0eef}} 
-        call    km_unknown_function_1;{{1e29:cd861e}} 
+        call    push_into_key_buffer;{{1e29:cd861e}} 
         pop     de                ;{{1e2c:d1}} 
         pop     bc                ;{{1e2d:c1}} 
         ret                       ;{{1e2e:c9}} 
@@ -720,7 +721,7 @@ table_to_convert_from_bit_index_07_to_bit_OR_mask_1bit_index:;{{Addr=$1e6d Data 
 ;;km reset or clear?
 km_reset_or_clear:                ;{{Addr=$1e75 Code Calls/jump count: 1 Data use count: 0}}
         di                        ;{{1e75:f3}} 
-        ld      hl,RAM_b686       ;{{1e76:2186b6}} 
+        ld      hl,key_buffer_free_entries_plus_1;{{1e76:2186b6}} 
         ld      (hl),$15          ;{{1e79:3615}} 
         inc     hl                ;{{1e7b:23}} 
         xor     a                 ;{{1e7c:af}} 
@@ -734,59 +735,64 @@ km_reset_or_clear:                ;{{Addr=$1e75 Code Calls/jump count: 1 Data us
         ret                       ;{{1e85:c9}} 
 
 ;;===========================================================================
-;; km unknown function 1
-km_unknown_function_1:            ;{{Addr=$1e86 Code Calls/jump count: 2 Data use count: 0}}
-        ld      hl,RAM_b686       ;{{1e86:2186b6}} 
+;; push into key buffer
+push_into_key_buffer:             ;{{Addr=$1e86 Code Calls/jump count: 2 Data use count: 0}}
+        ld      hl,key_buffer_free_entries_plus_1;{{1e86:2186b6}} 
         or      a                 ;{{1e89:b7}} 
         dec     (hl)              ;{{1e8a:35}} 
-        jr      z,_km_unknown_function_1_12;{{1e8b:280e}}  (+&0e)
-        call    _km_unknown_function_2_14;{{1e8d:cdb41e}} 
+        jr      z,_push_into_key_buffer_12;{{1e8b:280e}}  (+&0e)
+        call    get_next_key_buffer_item_addr;{{1e8d:cdb41e}} 
         ld      (hl),c            ;{{1e90:71}} 
         inc     hl                ;{{1e91:23}} 
         ld      (hl),b            ;{{1e92:70}} 
-        ld      hl,RAM_b68a       ;{{1e93:218ab6}} 
+        ld      hl,number_of_keys_in_keys_buffer;{{1e93:218ab6}} 
         inc     (hl)              ;{{1e96:34}} 
-        ld      hl,number_of_keys_left_in_key_buffer;{{1e97:2188b6}} 
+        ld      hl,number_of_keys_in_key_buffer_plus_1;{{1e97:2188b6}} 
         scf                       ;{{1e9a:37}} 
-_km_unknown_function_1_12:        ;{{Addr=$1e9b Code Calls/jump count: 1 Data use count: 0}}
+_push_into_key_buffer_12:         ;{{Addr=$1e9b Code Calls/jump count: 1 Data use count: 0}}
         inc     (hl)              ;{{1e9b:34}} 
         ret                       ;{{1e9c:c9}} 
 
 ;;===========================================================================
-;; km unknown function 2
-km_unknown_function_2:            ;{{Addr=$1e9d Code Calls/jump count: 1 Data use count: 0}}
-        ld      hl,number_of_keys_left_in_key_buffer;{{1e9d:2188b6}} 
+;; pop from key buffer
+pop_from_key_buffer:              ;{{Addr=$1e9d Code Calls/jump count: 1 Data use count: 0}}
+        ld      hl,number_of_keys_in_key_buffer_plus_1;{{1e9d:2188b6}} 
         or      a                 ;{{1ea0:b7}} 
         dec     (hl)              ;{{1ea1:35}} 
-        jr      z,_km_unknown_function_2_12;{{1ea2:280e}}  (+&0e)
-        call    _km_unknown_function_2_14;{{1ea4:cdb41e}} 
+        jr      z,_pop_from_key_buffer_12;{{1ea2:280e}}  (+&0e)
+        call    get_next_key_buffer_item_addr;{{1ea4:cdb41e}} 
         ld      c,(hl)            ;{{1ea7:4e}} 
         inc     hl                ;{{1ea8:23}} 
         ld      b,(hl)            ;{{1ea9:46}} 
-        ld      hl,RAM_b68a       ;{{1eaa:218ab6}} 
+        ld      hl,number_of_keys_in_keys_buffer;{{1eaa:218ab6}} 
         dec     (hl)              ;{{1ead:35}} 
-        ld      hl,RAM_b686       ;{{1eae:2186b6}} 
+        ld      hl,key_buffer_free_entries_plus_1;{{1eae:2186b6}} 
         scf                       ;{{1eb1:37}} 
-_km_unknown_function_2_12:        ;{{Addr=$1eb2 Code Calls/jump count: 1 Data use count: 0}}
+_pop_from_key_buffer_12:          ;{{Addr=$1eb2 Code Calls/jump count: 1 Data use count: 0}}
         inc     (hl)              ;{{1eb2:34}} 
         ret                       ;{{1eb3:c9}} 
 
 ;;-----------------------------------------------------------
-_km_unknown_function_2_14:        ;{{Addr=$1eb4 Code Calls/jump count: 2 Data use count: 0}}
-        inc     hl                ;{{1eb4:23}} 
-        inc     (hl)              ;{{1eb5:34}} 
+;;= get next key buffer item addr
+; Advance key buffer index to next entry, returns address of that entry.
+; In: HL=address /before/ index data. Out: HL=pointer to entry
+get_next_key_buffer_item_addr:    ;{{Addr=$1eb4 Code Calls/jump count: 2 Data use count: 0}}
+        inc     hl                ;{{1eb4:23}} Index is next byte
+        inc     (hl)              ;{{1eb5:34}} Inc index
         ld      a,(hl)            ;{{1eb6:7e}} 
-        cp      $14               ;{{1eb7:fe14}} 
-        jr      nz,_km_unknown_function_2_21;{{1eb9:2002}}  (+&02)
+        cp      $14               ;{{1eb7:fe14}} Max key buffer index
+        jr      nz,get_index_into_key_buffer;{{1eb9:2002}}  (+&02)
 
-        xor     a                 ;{{1ebb:af}} 
+        xor     a                 ;{{1ebb:af}} Wrap if end of buffer
         ld      (hl),a            ;{{1ebc:77}} 
 
-_km_unknown_function_2_21:        ;{{Addr=$1ebd Code Calls/jump count: 1 Data use count: 0}}
-        add     a,a               ;{{1ebd:87}} 
-        add     a,$5e             ;{{1ebe:c65e}} 
+;;= get index into key buffer
+; In: A=index Out HL=address
+get_index_into_key_buffer:        ;{{Addr=$1ebd Code Calls/jump count: 1 Data use count: 0}}
+        add     a,a               ;{{1ebd:87}} Multiply by 2 two (two bytes per entry)
+        add     a,Key_buffer and $ff;{{1ebe:c65e}} Add to address of key buffer
         ld      l,a               ;{{1ec0:6f}} 
-        ld      h,$b6             ;{{1ec1:26b6}} 
+        ld      h,Key_buffer >> 8 ;{{1ec1:26b6}} NOTE: We'll get errors if the buffer spans 256-byte boundary
         ret                       ;{{1ec3:c9}} 
 
 ;;===========================================================================
@@ -850,9 +856,11 @@ _km_set_control_1:                ;{{Addr=$1ee5 Code Calls/jump count: 2 Data us
         ret                       ;{{1eee:c9}} 
 
 ;;+------------------------------------------------------
-;; keyboard translation table
+;; keyboard translation tables
+;Translates keyboard row/columns to key values
 
-keyboard_translation_table:       ;{{Addr=$1eef Data Calls/jump count: 0 Data use count: 1}}
+;Normal key table
+keyboard_translation_tables:      ;{{Addr=$1eef Data Calls/jump count: 0 Data use count: 1}}
         defb $f0,$f3,$f1,$89,$86,$83,$8b,$8a
         defb $f2,$e0,$87,$88,$85,$81,$82,$80
         defb $10,$5b,$0d,$5d,$84,$ff,$5c,$ff
@@ -863,6 +871,8 @@ keyboard_translation_table:       ;{{Addr=$1eef Data Calls/jump count: 0 Data us
         defb $34,$33,$65,$77,$73,$64,$63,$78
         defb $31,$32,$fc,$71,$09,$61,$fd,$7a
         defb $0b,$0a,$08,$09,$58,$5a,$ff,$7f
+
+;Shifted key table
         defb $f4,$f7,$f5,$89,$86,$83,$8b,$8a
         defb $f6,$e0,$87,$88,$85,$81,$82,$80
         defb $10,$7b,$0d,$7d,$84,$ff,$60,$ff
@@ -873,6 +883,8 @@ keyboard_translation_table:       ;{{Addr=$1eef Data Calls/jump count: 0 Data us
         defb $24,$23,$45,$57,$53,$44,$43,$58
         defb $21,$22,$fc,$51,$09,$41,$fd,$5a
         defb $0b,$0a,$08,$09,$58,$5a,$ff,$7f
+
+;Control key table
         defb $f8,$fb,$f9,$89,$86,$83,$8c,$8a
         defb $fa,$e0,$87,$88,$85,$81,$82,$80
         defb $10,$1b,$0d,$1d,$84,$ff,$1c,$ff
@@ -883,6 +895,11 @@ keyboard_translation_table:       ;{{Addr=$1eef Data Calls/jump count: 0 Data us
         defb $ff,$ff,$05,$17,$13,$04,$03,$18
         defb $ff,$7e,$fc,$11,$e1,$01,$fe,$1a
         defb $ff,$ff,$ff,$ff,$ff,$ff,$ff,$7f
+
+;Key repeats table
+;(each byte/bit applies to all three key tables): 
+;1 byte is used per line of the tables; 
+;b0 to b7 give the columns (left to right), repeat if set
         defb $07,$03,$4b,$ff,$ff,$ff,$ff,$ff
         defb $ab,$8f              
 

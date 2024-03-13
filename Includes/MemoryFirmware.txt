@@ -1,6 +1,8 @@
 
 Main Firmware data area (not fully sure where this starts just at the mo.
 ==================
+CPC6128	CPC464
+-------	------
 &B0FF   &B0FF   0   Last byte of free memory
 
 Used by Maths routines
@@ -146,6 +148,7 @@ Clr	[	Ret	]	f4		\
 4	3	e	w	s	d	c	x
 1	2	Esc	q	Tab	a	Caps	z
 [VT]	[LF]	[BS]	[TAB]	Fire2	Fire1		Del
+
 &B4E6	&B39C	&50	Shifted Key Table:
 Cur U	Cur R	Cur D	f9	f6	f3	Enter	f.
 Cur L	Copy	f7	f8	f5	f1	f2	f0
@@ -157,6 +160,7 @@ _	)	O	I	L	K	M	<
 $	#	E	W	S	D	C	X
 !	"	Esc	Q	->	A	Caps	Z
 [VT]	[LF]	[BS]	[TAB]	Fire2	Fire1	Del
+
 &B536	&B3EC	&50	Control Key Table:
 Cur U	Cur R	Cur D	f9	f6	f3	Enter	f.
 Cur L	Copy	f7	f8	f5	f1	f2	f0
@@ -170,9 +174,9 @@ Clr	(ESC)	Ret	(GS)	f4		(FS)
 Del	
 &B586	&B43C	10	KB repeats table (each byte/bit applies to all three key tables): 1 byte is used per line of the tables; b0 to b7 give the columns (left to right), repeat if set
 &B590	&B446	&98	DEF KEY's definition area (for Keys &80 to &9F in sequence): each definition has either a single byte of &00 if it is unused/unaltered, or: byte 1: length of definition bytes 2 to x: definition, either a single key or a string of keys
-&B628	&B4DE	1	Byte after end of DEF KEY area
-&B629	&B4DF	1	
-&B62A	&B4E0	1	
+&B628	&B4DE	1	Key expansion data 1. (Index into expansion?) (Read and written as a pair)
+&B629	&B4DF	1	Key expansion data 2. (Key being expanded?) (Read and written as  a pair)
+&B62A	&B4E0	1	Returned char. Contains char returned to KM_RETURN_CHAR, or $ff if no returned char
 &B62B	&B4E1	2	address of DEF KEY area
 &B62D	&B4E3	2	address of byte after end of DEF KEY area
 &B62F	&B4E5	1	
@@ -225,18 +229,17 @@ Del
 &B65A	&B510	1	class: express event
 &B65B	&B511	2	ROM routine address: &C492
 &B65D	&B513	1	ROM select number: &FD
-&B65E	&B514	40  20*2	store for last keys pressed and each entry is as follows: byte 1: +0 to +10=key tables' line number; if bit 5 is set then Shift is pressed; bit 7=Control is pressed byte 2: b0 to b7=key tables' column number - see &B496 etc
+&B65E	&B514	40  Key buffer. 20*2	store for last keys pressed and each entry is as follows: byte 1: +0 to +10=key tables' line number; if bit 5 is set then Shift is pressed; bit 7=Control is pressed byte 2: b0 to b7=key tables' column number - see &B496 etc. WARNING: Buffer MUST NOT span a 256-byte boundary.
 &B67F	&B67F	2	vestige from the 464?
-&B686	&B53C	1	
-&B687	&B53D	1	accumulated count of the number of keys pressed (MOD 20)
-&B688	&B53E	1	number of keys left in key buffer
-&B689	&B53F	1	accumulated count of the number of keys removed from the buffer (MOD 20)
-&B68A	&B540	1	
+&B686	&B53C	1	key buffer free entries plus 1. No of free entries in key buffer
+&B687	&B53D	1	index of last key in key buffer. (FIFO head)
+&B688	&B53E	1	number of keys in key buffer plus 1
+&B689	&B53F	1	index of last key read from key buffer. (FIFO tail)
+&B68A	&B540	1	number of keys in keys buffer
 &B68B	&B541	2	address of the normal key table
 &B68D	&B543	2	address of the shifted key table
 &B68F	&B545	2	address of the control key table
-&B691	&B547	2	address of the KB repeats table
-&B692		1	
+&B691	&B547	2	address of the KB repeats table	
 
 Used by graphics packs
 ----
@@ -374,13 +377,12 @@ Used by screen pack
 &B7F3	&B1F8	1	hw &19 = sw 22 (pale green) pen 13
 &B7F4	&B1F9	1	hw &04 = sw 1 (bright yellow) pen 14
 &B7F5	&B1FA	1	hw &17 = sw 11 (pink) pen 15
-&B7F6	&B1FB	1	
-&B7F7	&B1FC	1	
-&B7F8	&B1FD	1	
-&B7F9	&BlFE	2	
-&B7FB	&B200	2	
-&B7FD			
-&B802		2   1+1	
+&B7F6	&B1FB	1	Current ink set (&00=first, &ff=second)
+&B7F7	&B1FC	1	Ink changed. Set to $ff when an ink (or border) is changed. Cleared when GA palette is updated
+&B7F8	&B1FD	1	Ink swap counter. Ink sets will be swapped when this reaches zero.
+&B7F9	&BlFE	9	Frame flyback data block for ink swap event		
+&B802			1	Cache of graphics pen during SCR_VERTICAL and SCR_HORIZONTAL
+&B803			1	Cache of line mask during SCR_VERTICAL and SCR_HORIZONTAL
 
 Used by Machine Pack
 ----
@@ -423,7 +425,7 @@ Used by Kernel Pack
 &B8D9	&B1AB	1	foreground ROM select address (0 for the BASIC ROM)
 &B8DA		16*2	Background ROM data address table. Value is as returned by ROM init routine (in DE), and passed 
                     back in IY when the ROM is called (via an RSX) - the 6128 has ROMs numbered from 0 to 15:
-&B1AC	7*2	ROM entry IY value (ie the address table)
+        &B1AC	7*2	ROM entry IY value (ie the address table)
 &B8DA		2	ROM 0 IY (not for the 464)
 &B8DC	&B1AC	2	ROM 1 IY
 &B8DE	&B1AE	2	ROM 2 IY
@@ -432,6 +434,7 @@ Used by Kernel Pack
 &B8E4	&B1B4	2	ROM 5 IY
 &B8E6	&B1B6	2	ROM 6 IY
 &B8E8	&B1B8	2	ROM 7 IY (usually &A700 for AMSDOS/CPM ROM)
+        &B1BA	14	14 bytes of &00
 &B8EA		2	ROM 8 IY (not 464)
 &B8EC		2	ROM 9 IY (not 464)
 &B8EE		2	ROM 10 IY (not 464)
@@ -441,7 +444,6 @@ Used by Kernel Pack
 &B8F6		2	ROM 14 IY (not 464)
 &B8F8		2	ROM 15 IY (not 464)
 &B8FA		6	6 bytes of &FF
-&B1BA	14	14 bytes of &00
 
 Jumpblocks
 ----
